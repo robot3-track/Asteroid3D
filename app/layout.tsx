@@ -3,8 +3,8 @@ import {Analytics} from '@vercel/analytics/next';
 import './globals.css'; // Global styles
 
 export const metadata: Metadata = {
-  title: 'My Google AI Studio App',
-  description: 'My Google AI Studio App',
+  title: 'Asteroid Simulator',
+  description: 'Live data pulled from NASA API for Asteroid simulation',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

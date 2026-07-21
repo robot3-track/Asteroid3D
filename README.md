@@ -1,6 +1,6 @@
 # NASA Live Asteroid 3D Simulator
 
-![App Screenshot](screenshot-2026-07-21.png)
+![Screenshot](asteroid.png)
 
 An interactive, high-performance 3D simulator that tracks near-Earth asteroids using live scientific observation data from NASA's Near Earth Object Web Service (NeoWs) API.
 

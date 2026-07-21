@@ -20,9 +20,9 @@ This application acts as a space observation console that lets you visualize ast
 
 ## Simulation Scale Notice (Visual Model vs. Telemetry Data)
 
-- **Logarithmic Distance & Size Scaling**: In real space, astronomical distances are immensely vast (1 Lunar Distance = 384,400 km). Rendering objects to exact 1:1 spatial scale would make Earth a tiny sub-pixel dot and render multi-meter asteroids completely invisible on screen.
+- **Logarithmic Distance & Size Scaling**: In real space, astronomical distances are immensely vast (1 Lunar Distance = 384,400 km). Rendering objects to exact 1:1 spatial scale would make Earth a tiny sub-pixel dot and render multi-meter asteroids completely invisible on screen. Therefore, the app is made so that it is easy to view asteroids for sure!
 - **Enhanced Visual Models**: For interactive utility, orbital radii and 3D mesh geometries in the simulator canvas are proportionally scaled so users can visually track trajectories, zoom in, hover, and click on target space rocks.
-- **Accurate Telemetry Display**: While visual models are scaled for 3D web visibility, all numbers in the details panels, telemetry overlays, and comparative size metrics represent exact, real-world scientific values.
+- **Accurate Telemetry Display**: While visual models are scaled for 3D web visibility, all numbers in the details panels, telemetry overlays, and comparative size metrics represent exact, real-world scientific values! So don't worry- I got you covered with the real facts!
 
 ## Core Features
 
@@ -38,3 +38,6 @@ To maximize rendering performance and eliminate texture download overhead:
 1. **Procedural Holographic Earth**: Generates dynamic cloud layers, continental landmasses, and atmospheric haze using in-memory HTML5 Canvas textures with 0ms network loading latency.
 2. **Procedural Asteroid Meshes**: Generates organic, non-uniform irregular polyhedral structures using vertex noise perturbation algorithms.
 
+## Try the official deployment now!
+
+You can try the app here at: https://asteroidsim.vercel.app

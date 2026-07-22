@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, ShieldAlert, Orbit, Compass, Calendar, AlertTriangle, HelpCircle, FastForward, Pause, Play, RefreshCw, Layers } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw, Globe, Sun } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
 
 interface ControlPanelProps {
@@ -42,27 +42,55 @@ export default function ControlPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  // Filter the list displayed on the sidebar
-  const filteredAsteroids = asteroids.filter((ast) => {
-    // Search query
-    if (searchQuery && !ast.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    // Hazardous only
-    if (filterHazardousOnly && !ast.isHazardous) {
-      return false;
-    }
-    // Min size
-    const avgSize = (ast.diameterMinMeters + ast.diameterMaxMeters) / 2;
-    if (avgSize < filterSizeMin) {
-      return false;
-    }
-    return true;
-  });
+  // Memoize filtered items to prevent computational layout blocking on simulation ticks
+  const filteredAsteroids = useMemo(() => {
+    return asteroids.filter((ast) => {
+      // Search query
+      if (searchQuery && !ast.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      // Hazardous filter
+      if (filterHazardousOnly && !ast.isHazardous) {
+        return false;
+      }
+      // Min size threshold filter
+      const avgSize = (ast.diameterMinMeters + ast.diameterMaxMeters) / 2;
+      if (avgSize < filterSizeMin) {
+        return false;
+      }
+      return true;
+    });
+  }, [asteroids, searchQuery, filterHazardousOnly, filterSizeMin]);
 
   return (
-    <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none transition-all duration-300 font-mono text-xs scrollbar-thin">
+    <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
       
+      {/* 1. ORBIT VIEW SELECTOR (Restored from Props) */}
+      <div className="border-b border-zinc-800 p-3 bg-zinc-950/20 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => onViewModeChange("geocentric")}
+          className={`flex items-center justify-center gap-1.5 py-1.5 border uppercase text-[10px] font-bold transition-all ${
+            viewMode === "geocentric"
+              ? "bg-white text-black border-white"
+              : "bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700"
+          }`}
+        >
+          <Globe className="w-3 h-3" />
+          Geocentric
+        </button>
+        <button
+          onClick={() => onViewModeChange("heliocentric")}
+          className={`flex items-center justify-center gap-1.5 py-1.5 border uppercase text-[10px] font-bold transition-all ${
+            viewMode === "heliocentric"
+              ? "bg-white text-black border-white"
+              : "bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700"
+          }`}
+        >
+          <Sun className="w-3 h-3" />
+          Heliocentric
+        </button>
+      </div>
+
       {/* 2. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
       <div className="border-b border-zinc-800 bg-zinc-950/40">
         <button
@@ -72,15 +100,15 @@ export default function ControlPanel({
         >
           <span className="flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-            Date & Filter Settings
+            Observation & Filter Settings
           </span>
           <span className="text-zinc-500 font-mono text-[9px] hover:text-white">
-            {settingsExpanded ? "[-] Collapse" : "[+] Expand Menu"}
+            {settingsExpanded ? "[-]" : "[+]"}
           </span>
         </button>
 
         {settingsExpanded && (
-          <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4 animate-fade-in">
+          <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4">
             {/* DATE SELECTOR */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
@@ -95,7 +123,7 @@ export default function ControlPanel({
                   type="date"
                   value={targetDate}
                   onChange={(e) => onTargetDateChange(e.target.value)}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-none px-2.5 py-1.5 text-xs text-white focus:border-zinc-500 outline-none"
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-none px-2.5 py-1.5 text-xs text-white focus:border-zinc-500 outline-none color-scheme-dark"
                 />
                 <button
                   id="refetch-btn"
@@ -112,7 +140,7 @@ export default function ControlPanel({
             {/* SIMULATION SPEED */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[9px] text-zinc-400">
-                <span className="font-bold uppercase">Time Speed</span>
+                <span className="font-bold uppercase">Time Warp Speed</span>
                 <span className="text-white font-bold font-mono">
                   {simulationSpeed === 0 ? "Paused" : `${simulationSpeed} days/sec`}
                 </span>
@@ -132,7 +160,7 @@ export default function ControlPanel({
                   max="150"
                   step="5"
                   value={simulationSpeed}
-                  onChange={(e) => onSimulationSpeedChange(parseInt(e.target.value))}
+                  onChange={(e) => onSimulationSpeedChange(parseInt(e.target.value, 10))}
                   className="flex-1 h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
                 />
                 <button
@@ -163,15 +191,14 @@ export default function ControlPanel({
 
               {/* Hazard Toggle */}
               <div className="flex items-center justify-between">
-                <label 
-                  htmlFor="hazard-toggle-checkbox" 
-                  className="text-[9px] text-zinc-300 uppercase flex items-center gap-1.5 cursor-pointer font-bold"
-                >
+                <span className="text-[9px] text-zinc-300 uppercase flex items-center gap-1.5 font-bold">
                   <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
                   Show Hazardous Only
-                </label>
+                </span>
                 <button
                   id="hazard-toggle-checkbox"
+                  role="checkbox"
+                  aria-checked={filterHazardousOnly}
                   onClick={() => onFilterHazardousChange(!filterHazardousOnly)}
                   className="font-mono text-[9px] text-zinc-400 hover:text-white uppercase px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded-none transition-all"
                 >
@@ -192,7 +219,7 @@ export default function ControlPanel({
                   max="1000"
                   step="20"
                   value={filterSizeMin}
-                  onChange={(e) => onFilterSizeChange(parseInt(e.target.value))}
+                  onChange={(e) => onFilterSizeChange(parseInt(e.target.value, 10))}
                   className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
                 />
               </div>
@@ -201,7 +228,7 @@ export default function ControlPanel({
         )}
       </div>
 
-      {/* 5. PINNED CELESTIAL TARGET: THE MOON */}
+      {/* 3. PINNED CELESTIAL TARGET: THE MOON */}
       <div className="border-b border-zinc-800 bg-zinc-950 p-2.5">
         <div
           id="moon-target-card"
@@ -214,7 +241,7 @@ export default function ControlPanel({
         >
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-200 text-xs">
+              <div className="w-6 h-6 rounded-full border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-200 text-xs select-none">
                 🌙
               </div>
               <div>
@@ -238,7 +265,7 @@ export default function ControlPanel({
         </div>
       </div>
 
-      {/* 6. ASTEROID LIST HEADER */}
+      {/* 4. ASTEROID LIST HEADER */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-950 border-b border-zinc-800 text-[10px]">
         <span className="text-zinc-400 font-bold uppercase">
           Space Rocks Feed ({filteredAsteroids.length})
@@ -246,7 +273,7 @@ export default function ControlPanel({
         <span className="text-zinc-500 uppercase">Nearest First</span>
       </div>
 
-      {/* 6. ASTEROID LIST FEED */}
+      {/* 5. ASTEROID LIST FEED */}
       <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
         {filteredAsteroids.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center gap-2">

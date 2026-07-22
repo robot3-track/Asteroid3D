@@ -8,8 +8,8 @@ interface ControlPanelProps {
   asteroids: Asteroid[];
   selectedId: string | null;
   onSelectAsteroid: (id: string | null) => void;
-  viewMode: "geocentric" | "heliocentric";
-  onViewModeChange: (mode: "geocentric" | "heliocentric") => void;
+  viewMode: "geocentric" ;
+  onViewModeChange: (mode: "geocentric") => void;
   simulationSpeed: number;
   onSimulationSpeedChange: (speed: number) => void;
   filterHazardousOnly: boolean;
@@ -86,9 +86,6 @@ export default function ControlPanel({
               : "bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700"
           }`}
         >
-          <Sun className="w-3 h-3" />
-          Heliocentric
-        </button>
       </div>
 
       {/* 2. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}

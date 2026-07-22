@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Globe, Ruler, Gauge, Compass, Waves, ArrowUpRight, Circle } from "lucide-react";
+import { X, Globe, Ruler, Gauge, Compass, Waves, ArrowUpRight } from "lucide-react";
 
 interface MoonDetailsProps {
   targetDate: string;
@@ -10,8 +10,13 @@ interface MoonDetailsProps {
 
 export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
   // Live lunar properties calculator based on selected target date
-  const getMoonProperties = (dateString: string) => {
-    const target = new Date(dateString);
+  const luna = React.useMemo(() => {
+    // Graceful fallback for date parsing
+    const target = targetDate ? new Date(targetDate) : new Date();
+    if (isNaN(target.getTime())) {
+      return null;
+    }
+
     // Known New Moon reference date
     const baseNewMoon = new Date("2000-01-06T18:14:00Z");
     const diffTime = target.getTime() - baseNewMoon.getTime();
@@ -29,7 +34,6 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     let phaseName = "";
     let phaseCode = "";
     
-    // 0 to 2*PI angle of the phase
     const angle = progress * 2 * Math.PI;
     const illumRatio = (1 - Math.cos(angle)) / 2;
     const illumination = Math.round(illumRatio * 100);
@@ -67,13 +71,13 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     const anomalisticMonth = 27.55455;
     const orbitAngle = (diffDays / anomalisticMonth) * 2 * Math.PI;
     
-    // Distances in km: Perigee (closest) ~363,300km, Apogee (farthest) ~405,500km
+    // Distances in km: Perigee ~363,300km, Apogee ~405,500km
     const distBase = 384400; // mean distance
     const distAmplit = 21100;
     const distanceKm = Math.round(distBase - distAmplit * Math.cos(orbitAngle));
     const distanceLd = parseFloat((distanceKm / 384400).toFixed(4));
 
-    // Instantaneous orbital speed in km/s (based on elliptical vis-viva equation)
+    // Instantaneous orbital speed in km/s (elliptical vis-viva approximation)
     const velocityKms = parseFloat((1.022 * (1 + 0.0549 * Math.cos(orbitAngle))).toFixed(3));
 
     // Tidal gravitational pull coefficient (varies inversely with cube of distance d^3)
@@ -83,7 +87,7 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     const isSupermoon = distanceKm < (distBase - distAmplit * 0.8) && illumination > 95;
     const isMicromoon = distanceKm > (distBase + distAmplit * 0.8) && illumination > 95;
     
-    // Orbital node state description
+    // Orbital apsis state description (corrected terminology)
     let orbitStateDesc = "Mean Orbit";
     if (distanceKm < 370000) {
       orbitStateDesc = "Perigee (Near Point)";
@@ -105,9 +109,15 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
       orbitStateDesc,
       progress
     };
-  };
+  }, [targetDate]);
 
-  const luna = getMoonProperties(targetDate);
+  if (!luna) {
+    return (
+      <div className="flex items-center justify-center h-full bg-black border border-zinc-800 text-zinc-500 font-mono text-xs">
+        INVALID DATE FORMAT
+      </div>
+    );
+  }
 
   // Helper to generate CSS-based representation of the Moon's phase
   const renderMoonPhaseGraphic = () => {
@@ -119,46 +129,45 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
         {/* Outer Shadow Ring */}
         <div className="absolute inset-0 rounded-full bg-zinc-950 border border-zinc-800" />
         
-        {/* The Dark Side (unlit) */}
+        {/* The Dark Side (unlit base sphere) */}
         <div className="absolute inset-1 rounded-full bg-zinc-900 overflow-hidden">
-          {/* The Lit Side representation */}
           {luna.phaseCode === "new" ? (
             <div className="w-full h-full bg-zinc-900" />
           ) : luna.phaseCode === "full" ? (
             <div className="w-full h-full bg-amber-50/90 shadow-[inset_-4px_-4px_16px_rgba(255,255,255,0.7)]" />
           ) : (
-            <div className="relative w-full h-full flex">
-              {/* Render dynamic waxing/waning overlay */}
+            <div className="relative w-full h-full">
+              {/* Dynamic Lit Side Segment */}
               <div 
-                className={`absolute inset-0 bg-amber-50/90 shadow-[inset_-4px_-4px_16px_rgba(255,255,255,0.5)] transition-all duration-300`} 
+                className="absolute inset-0 bg-amber-50/90 shadow-[inset_-4px_-4px_16px_rgba(255,255,255,0.5)] transition-all duration-300" 
                 style={{
-                  clipPath: isWaxing
-                    ? `polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%)`
-                    : `polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%)`
+                  left: isWaxing ? "50%" : "0%",
+                  right: isWaxing ? "0%" : "50%",
+                  borderRadius: isGibbous ? "0%" : "100%",
+                  transform: `scaleX(${isGibbous ? (luna.illumination - 50) / 50 : (50 - luna.illumination) / 50})`,
+                  transformOrigin: isWaxing ? "left" : "right"
                 }}
               />
+              {/* Base Half-Lit Hemisphere */}
               <div 
-                className="absolute inset-0 bg-zinc-900 transition-all duration-300"
+                className="absolute inset-0 bg-amber-50/90 shadow-[inset_-4px_-4px_16px_rgba(255,255,255,0.5)]" 
                 style={{
-                  borderRadius: "50%",
-                  transform: `scaleX(${Math.abs(50 - luna.illumination) / 50})`,
-                  clipPath: isGibbous 
-                    ? (isWaxing ? "none" : "none") // custom clip if needed
-                    : "none",
-                  backgroundColor: isGibbous ? "rgb(254, 252, 232)" : "rgb(24, 24, 27)"
+                  left: isWaxing ? "50%" : "0%",
+                  right: isWaxing ? "0%" : "50%",
+                  visibility: isGibbous ? "visible" : "hidden"
                 }}
               />
             </div>
           )}
 
-          {/* Lunar crater highlights on the graphic */}
-          <div className="absolute top-4 left-6 w-3 h-3 rounded-full bg-black/10 border border-white/5" />
-          <div className="absolute bottom-6 right-8 w-4 h-4 rounded-full bg-black/15 border border-white/5" />
-          <div className="absolute top-12 right-6 w-2 h-2 rounded-full bg-black/10 border border-white/5" />
-          <div className="absolute bottom-10 left-10 w-1.5 h-1.5 rounded-full bg-black/10" />
+          {/* Lunar crater highlights overlay */}
+          <div className="absolute top-4 left-6 w-3 h-3 rounded-full bg-black/10 border border-white/5 pointer-events-none" />
+          <div className="absolute bottom-6 right-8 w-4 h-4 rounded-full bg-black/15 border border-white/5 pointer-events-none" />
+          <div className="absolute top-12 right-6 w-2 h-2 rounded-full bg-black/10 border border-white/5 pointer-events-none" />
+          <div className="absolute bottom-10 left-10 w-1.5 h-1.5 rounded-full bg-black/10 pointer-events-none" />
         </div>
 
-        {/* Glow */}
+        {/* Outer Glow */}
         <div className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(254,249,195,0.12)] pointer-events-none" />
       </div>
     );
@@ -285,7 +294,7 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
         {/* ORBIT STATE SUMMARY */}
         <div className="p-3 bg-zinc-950 border border-zinc-900 space-y-1">
           <span className="text-zinc-500 text-[9px] uppercase font-bold">
-            Orbit Node State
+            Orbital Apsis State
           </span>
           <div className="text-white font-bold text-xs uppercase tracking-wide flex items-center justify-between">
             <span>{luna.orbitStateDesc}</span>

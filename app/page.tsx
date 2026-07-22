@@ -24,7 +24,6 @@ import MoonDetails from "@/components/MoonDetails";
 import { Asteroid } from "@/lib/nasa";
 
 export default function Home() {
-  const theme = "dark";
   const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPredictedRoute, setShowPredictedRoute] = useState<boolean>(false);
@@ -83,9 +82,10 @@ export default function Home() {
           throw new Error(data.error || "Failed to load asteroids");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (active) {
-        setError(err.message || "Failed to sync with space orbital sensors.");
+        const errorMessage = err instanceof Error ? err.message : "Failed to sync with space orbital sensors.";
+        setError(errorMessage);
       }
     } finally {
       if (active) {
@@ -111,15 +111,6 @@ export default function Home() {
   const totalCount = asteroids.length;
   const hazardousCount = asteroids.filter((a) => a.isHazardous).length;
   
-  const closestAsteroid = asteroids.reduce((min, a) => {
-    if (!min) return a;
-    return a.missDistanceLd < min.missDistanceLd ? a : min;
-  }, null as Asteroid | null);
-
-  const avgSpeed = totalCount > 0 
-    ? (asteroids.reduce((sum, a) => sum + a.velocityKms, 0) / totalCount)
-    : 0;
-
   return (
     <main className="h-screen w-full relative flex flex-col font-mono transition-colors duration-300 overflow-hidden bg-black text-zinc-300">
       
@@ -174,10 +165,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Theme Toggle Button Removed */}
-        <div className="flex items-center gap-2">
-        </div>
-
+        <div className="flex items-center gap-2"></div>
       </header>
 
       {/* ERROR STATUS BANNER */}
@@ -201,7 +189,7 @@ export default function Home() {
         {/* VIEW TAB A: 3D SPACE SIMULATOR */}
         {viewTab === "simulator" && (
           <div className="relative w-full h-full overflow-hidden">
-            {/* Background 3D Canvas - Always full width and height */}
+            {/* Background 3D Canvas */}
             <div className="absolute inset-0 z-0">
               <AsteroidSimulator
                 asteroids={asteroids}
@@ -235,7 +223,7 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Sidebar Left Controls - Floating overlay panel */}
+            {/* Sidebar Left Controls */}
             <div className={`absolute top-12 left-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[320px] pointer-events-none transition-all duration-300 ${
               leftSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -260,7 +248,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sidebar Right Target Details - Floating overlay panel */}
+            {/* Sidebar Right Target Details */}
             <div className={`absolute top-12 right-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[380px] pointer-events-none transition-all duration-300 ${
               rightSidebarOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -294,8 +282,6 @@ export default function Home() {
             </div>
           </div>
         )}
-
-
 
         {/* VIEW TAB C: DETAILED TELEMETRY GRID/TABLE */}
         {viewTab === "feed" && (
@@ -373,7 +359,11 @@ export default function Home() {
                             )}
                           </td>
                           <td className="py-2.5 px-2 text-right text-zinc-500">
-                            a={ast.orbitalParams?.semiMajorAxisAu.toFixed(2)} e={ast.orbitalParams?.eccentricity.toFixed(2)}
+                            {ast.orbitalParams ? (
+                              `a=${ast.orbitalParams.semiMajorAxisAu.toFixed(2)} e=${ast.orbitalParams.eccentricity.toFixed(2)}`
+                            ) : (
+                              "N/A"
+                            )}
                           </td>
                         </tr>
                       );
@@ -411,7 +401,7 @@ export default function Home() {
       </div>
 
       {/* FOOTER BAR */}
-      <footer className={`flex-none relative z-20 py-2.5 px-4 border-t border-zinc-800 font-mono text-[9px] flex flex-col md:flex-row items-center justify-between gap-2 transition-colors duration-300 bg-zinc-950 text-zinc-500`}>
+      <footer className="flex-none relative z-20 py-2.5 px-4 border-t border-zinc-800 font-mono text-[9px] flex flex-col md:flex-row items-center justify-between gap-2 transition-colors duration-300 bg-zinc-950 text-zinc-500">
         <div className="flex items-center gap-2">
           <Database className="w-3.5 h-3.5 text-zinc-400" />
           <span className="uppercase text-zinc-500">DATABASE STREAM: NASA NEO API (NEOWS)</span>

@@ -23,7 +23,9 @@ jobs:
           version: 9
 
       - name: Install Web Dependencies
-        run: pnpm install
+        run: |
+          pnpm install
+          pnpm add -D @capacitor/cli @capacitor/core @capacitor/android
 
       - name: Setup Java JDK 17
         uses: actions/setup-java@v4
@@ -38,9 +40,7 @@ jobs:
         run: pnpm run build
 
       - name: Sync Web Assets to Capacitor Android Project
-        run: |
-          pnpm add -D @capacitor/cli
-          pnpm exec cap sync android
+        run: pnpm exec cap sync android
 
       - name: Compile Debug APK Artifact
         run: |

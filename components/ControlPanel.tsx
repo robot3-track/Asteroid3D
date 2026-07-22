@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, ShieldAlert, Orbit, Compass, Calendar, AlertTriangle, HelpCircle, FastForward, Pause, Play, RefreshCw, Layers } from "lucide-react";
+import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
 
 interface ControlPanelProps {
   asteroids: Asteroid[];
   selectedId: string | null;
   onSelectAsteroid: (id: string | null) => void;
-  viewMode: "geocentric" | "heliocentric";
-  onViewModeChange: (mode: "geocentric" | "heliocentric") => void;
   simulationSpeed: number;
   onSimulationSpeedChange: (speed: number) => void;
   filterHazardousOnly: boolean;
@@ -26,8 +24,6 @@ export default function ControlPanel({
   asteroids,
   selectedId,
   onSelectAsteroid,
-  viewMode,
-  onViewModeChange,
   simulationSpeed,
   onSimulationSpeedChange,
   filterHazardousOnly,
@@ -114,7 +110,7 @@ export default function ControlPanel({
               <div className="flex items-center justify-between text-[9px] text-zinc-400">
                 <span className="font-bold uppercase">Time Speed</span>
                 <span className="text-white font-bold font-mono">
-                  {simulationSpeed === 0 ? "Paused" : `${simulationSpeed} days/sec`}
+                  {simulationSpeed === 0 ? "Paused" : `${simulationSpeed}x speed`}
                 </span>
               </div>
               <div className="flex items-center gap-2">

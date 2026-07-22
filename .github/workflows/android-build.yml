@@ -38,7 +38,7 @@ jobs:
         run: pnpm run build
 
       - name: Sync Web Assets to Capacitor Android Project
-        run: npx cap sync android
+        run: pnpm cap sync android
 
       - name: Compile Debug APK Artifact
         run: |

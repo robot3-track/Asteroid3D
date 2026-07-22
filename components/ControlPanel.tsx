@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw, Globe, Sun } from "lucide-react";
+import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
 
 interface ControlPanelProps {
   asteroids: Asteroid[];
   selectedId: string | null;
   onSelectAsteroid: (id: string | null) => void;
-  viewMode: "geocentric" ;
-  onViewModeChange: (mode: "geocentric") => void;
   simulationSpeed: number;
   onSimulationSpeedChange: (speed: number) => void;
   filterHazardousOnly: boolean;
@@ -26,8 +24,6 @@ export default function ControlPanel({
   asteroids,
   selectedId,
   onSelectAsteroid,
-  viewMode,
-  onViewModeChange,
   simulationSpeed,
   onSimulationSpeedChange,
   filterHazardousOnly,
@@ -65,30 +61,7 @@ export default function ControlPanel({
   return (
     <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
       
-      {/* 1. ORBIT VIEW SELECTOR (Restored from Props) */}
-      <div className="border-b border-zinc-800 p-3 bg-zinc-950/20 grid grid-cols-2 gap-2">
-        <button
-          onClick={() => onViewModeChange("geocentric")}
-          className={`flex items-center justify-center gap-1.5 py-1.5 border uppercase text-[10px] font-bold transition-all ${
-            viewMode === "geocentric"
-              ? "bg-white text-black border-white"
-              : "bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700"
-          }`}
-        >
-          <Globe className="w-3 h-3" />
-          Geocentric
-        </button>
-        <button
-          onClick={() => onViewModeChange("heliocentric")}
-          className={`flex items-center justify-center gap-1.5 py-1.5 border uppercase text-[10px] font-bold transition-all ${
-            viewMode === "heliocentric"
-              ? "bg-white text-black border-white"
-              : "bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700"
-          }`}
-        >
-      </div>
-
-      {/* 2. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
+      {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
       <div className="border-b border-zinc-800 bg-zinc-950/40">
         <button
           id="toggle-settings-btn"
@@ -225,7 +198,7 @@ export default function ControlPanel({
         )}
       </div>
 
-      {/* 3. PINNED CELESTIAL TARGET: THE MOON */}
+      {/* 2. PINNED CELESTIAL TARGET: THE MOON */}
       <div className="border-b border-zinc-800 bg-zinc-950 p-2.5">
         <div
           id="moon-target-card"
@@ -262,7 +235,7 @@ export default function ControlPanel({
         </div>
       </div>
 
-      {/* 4. ASTEROID LIST HEADER */}
+      {/* 3. ASTEROID LIST HEADER */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-950 border-b border-zinc-800 text-[10px]">
         <span className="text-zinc-400 font-bold uppercase">
           Space Rocks Feed ({filteredAsteroids.length})
@@ -270,7 +243,7 @@ export default function ControlPanel({
         <span className="text-zinc-500 uppercase">Nearest First</span>
       </div>
 
-      {/* 5. ASTEROID LIST FEED */}
+      {/* 4. ASTEROID LIST FEED */}
       <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
         {filteredAsteroids.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center gap-2">

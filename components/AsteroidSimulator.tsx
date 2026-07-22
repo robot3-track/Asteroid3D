@@ -257,7 +257,7 @@ export default function AsteroidSimulator({
         drawCrater(bc.x, bc.y, bc.r);
       });
 
-      // Scattered impact craters
+      // Scattered impact craters for realistic feel
       for (let i = 0; i < 45; i++) {
         drawCrater(Math.random() * 512, Math.random() * 256, 1.5 + Math.random() * 4);
       }

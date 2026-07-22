@@ -322,7 +322,6 @@ export default function AsteroidSimulator({
     starsGeo.setAttribute("position", new THREE.BufferAttribute(starsPositions, 3));
     starsGeo.setAttribute("color", new THREE.BufferAttribute(starsColors, 3));
 
-    // Custom star shader for pulsing starfield
     const starsMat = new THREE.PointsMaterial({
       size: 1.2,
       vertexColors: true,
@@ -399,7 +398,7 @@ export default function AsteroidSimulator({
     const moonGroup = new THREE.Group();
     earthGroup.add(moonGroup);
 
-    const moonRadius = 0.45; // slightly larger for realistic prominence & selectability
+    const moonRadius = 0.45; 
     const moonGeo = new THREE.SphereGeometry(moonRadius, 32, 32);
     const moonTex = createMoonCanvasTexture();
     const moonMat = new THREE.MeshPhongMaterial({
@@ -412,7 +411,6 @@ export default function AsteroidSimulator({
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonMesh.userData = { asteroidId: "moon", isMoon: true };
     
-    // Moon distance in simulator scale (normalized: Moon orbit = 9.0 units)
     const moonOrbitRadius = 8.5;
     moonMesh.position.set(moonOrbitRadius, 0, 0);
     moonGroup.add(moonMesh);
@@ -443,7 +441,6 @@ export default function AsteroidSimulator({
       trailLine?: THREE.Line;
       vectorLine?: THREE.Line;
       directionArrow?: THREE.ArrowHelper;
-      // Procedural offset seed for animation
       phaseOffset: number;
     }
 
@@ -453,10 +450,7 @@ export default function AsteroidSimulator({
 
     // Procedural Asteroid geometry helper - returns a unique space rock
     const createProceduralAsteroidGeometry = (radius: number, seed: number): THREE.BufferGeometry => {
-      // 1. Start with an icosahedron geometry
       const geo = new THREE.IcosahedronGeometry(radius, 1);
-      
-      // 2. Perturb vertices procedurally to create unique cratered/lumpy profiles
       const posAttr = geo.attributes.position;
       const v = new THREE.Vector3();
       const s = Math.sin(seed);
@@ -464,15 +458,13 @@ export default function AsteroidSimulator({
 
       for (let i = 0; i < posAttr.count; i++) {
         v.fromBufferAttribute(posAttr, i);
-        v.normalize(); // Get direction
+        v.normalize();
         
-        // Pseudo-random height displacement
         const nx = v.x * 3.1 + s * 2.5;
         const ny = v.y * 2.7 + c * 3.1;
         const nz = v.z * 3.5 + s * 1.5;
         const noise = Math.sin(nx) * Math.cos(ny) + Math.sin(nz) * Math.cos(nx);
         
-        // Scale factor: displace radius slightly based on noise
         const displacement = 1 + noise * 0.18;
         v.multiplyScalar(radius * displacement);
 
@@ -492,7 +484,6 @@ export default function AsteroidSimulator({
         if (item.vectorLine) asteroidGroup.remove(item.vectorLine);
         if (item.directionArrow) asteroidGroup.remove(item.directionArrow);
         
-        // Dispose memory
         item.mesh.geometry.dispose();
         (item.mesh.material as THREE.Material).dispose();
         if (item.trailLine) {
@@ -510,25 +501,21 @@ export default function AsteroidSimulator({
       const targetAsteroids = current.asteroids;
 
       targetAsteroids.forEach((ast, idx) => {
-        // Apply filters
         if (current.filterHazardousOnly && !ast.isHazardous) return;
         
         const avgDiameter = (ast.diameterMinMeters + ast.diameterMaxMeters) / 2;
         if (avgDiameter < current.filterSizeMin) return;
 
-        // Visual scale sizes: map real meters (~10m to 16000m) to simulator size beautifully
-        // Normalized with logarithmic compression so huge asteroids don't swallow the viewport
         const visualRadius = 0.15 + Math.log10(avgDiameter / 10 + 1) * 0.16;
 
-        // Material based on status
         const isSelected = ast.id === current.selectedId;
         const isHovered = ast.id === current.hoveredId;
         
-        let color = 0x94a3b8; // Slate color for standard
+        let color = 0x94a3b8; 
         if (ast.isHazardous) {
-          color = 0xff5533; // Red-orange for hazardous
+          color = 0xff5533; 
         } else if (avgDiameter > 1000) {
-          color = 0xbc9dff; // Purple-ish for huge benign ones
+          color = 0xbc9dff; 
         }
 
         const rockGeo = createProceduralAsteroidGeometry(visualRadius, parseFloat(ast.id) || idx);
@@ -538,41 +525,31 @@ export default function AsteroidSimulator({
           shininess: 12,
           bumpScale: 0.1,
           emissive: isSelected ? 0x00f2ff : isHovered ? 0x0088ff : 0x000000,
-          emissiveIntensity: isSelected ? 0.6 : isHovered ? 0.3 : 0
+          emissiveIntensity: isSelected ? 0.6 : isHovered ? 0.35 : 0
         });
 
         const rockMesh = new THREE.Mesh(rockGeo, rockMat);
-        // Tag mesh with its asteroid ID for interactive Raycasting
         rockMesh.userData = { asteroidId: ast.id };
         asteroidGroup.add(rockMesh);
 
-        // A. TRAIL LINES (ORBITS / INCOMING VECTORS)
         let trailLine: THREE.Line | undefined;
         let vectorLine: THREE.Line | undefined;
         let directionArrow: THREE.ArrowHelper | undefined;
 
-        // Draw approaching straight/hyperbolic flyby route relative to Earth
         const trailPoints: THREE.Vector3[] = [];
-        
-        // Position at close approach. Logarithmic scaling ensures all asteroids are easily spotted & clickable
-        // within the viewport (1.2 to 15.0 units radius around Earth, where Moon is at 8.5 units).
         const scaledMissDistance = 1.2 + Math.log2(ast.missDistanceLd + 1) * 2.2;
         
-        // Pseudo-random angle around Earth using its ID as seed
         const seedAngle = ((parseFloat(ast.id) * 31) % 100) / 100 * Math.PI * 2;
-        const seedInclination = (((parseFloat(ast.id) * 7) % 50) - 25) / 180 * Math.PI; // -25deg to +25deg
+        const seedInclination = (((parseFloat(ast.id) * 7) % 50) - 25) / 180 * Math.PI;
 
-        // Closest approach coordinate (P_0)
         const p0 = new THREE.Vector3(
           Math.cos(seedAngle) * scaledMissDistance,
           Math.sin(seedInclination) * scaledMissDistance,
           Math.sin(seedAngle) * scaledMissDistance
         );
 
-        // Flyby direction vector (T) - perpendicular to P_0 for correct minimum distance
         const flybyDir = new THREE.Vector3(-p0.z, p0.y * 0.3, p0.x).normalize();
 
-        // Generate flyby trail vertices from -30 to +30 time steps
         for (let step = -50; step <= 50; step++) {
           const pos = p0.clone().addScaledVector(flybyDir, step * 0.6);
           trailPoints.push(pos);
@@ -586,11 +563,9 @@ export default function AsteroidSimulator({
           linewidth: isSelected ? 2 : 1
         });
         trailLine = new THREE.Line(trailGeo, trailMat);
-        // HIDE TRAIL LINES UNTIL CLICKED/SELECTED
         trailLine.visible = isSelected;
         asteroidGroup.add(trailLine);
 
-        // Connecting Laser Vector from Earth to Asteroid
         if (isSelected) {
           const vecPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)];
           const vecGeo = new THREE.BufferGeometry().setFromPoints(vecPoints);
@@ -617,10 +592,8 @@ export default function AsteroidSimulator({
       setLoading(false);
     };
 
-    // Rebuild immediately on startup
     rebuildAsteroidsInScene();
 
-    // Re-trigger rebuild whenever asteroids array, filters, or selection changes
     let prevSelectedId = selectedId;
     let prevFilterHazardous = filterHazardousOnly;
     let prevFilterSize = filterSizeMin;
@@ -631,14 +604,12 @@ export default function AsteroidSimulator({
     const mouse = new THREE.Vector2();
 
     const onPointerDown = (event: PointerEvent) => {
-      // Calculate normalized mouse positions inside the canvas container
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
 
-      // Check intersections against asteroid meshes and the Moon
       const checkList = [
         moonMesh,
         ...renderedAsteroidsPool.map((ra) => ra.mesh)
@@ -679,7 +650,6 @@ export default function AsteroidSimulator({
             setHoveredAsteroid(found || null);
           }
           
-          // Re-render asteroid colors dynamically to show glowing hover effect
           renderedAsteroidsPool.forEach((item) => {
             const isHovered = item.id === hoveredId;
             const isSelected = item.id === stateRef.current.selectedId;
@@ -726,10 +696,8 @@ export default function AsteroidSimulator({
 
       requestAnimationFrame(animate);
 
-      // Read live params safely from React-independent stateRef
       const current = stateRef.current;
 
-      // Trigger rebuild on filters or selection changed
       if (
         prevSelectedId !== current.selectedId ||
         prevFilterHazardous !== current.filterHazardousOnly ||
@@ -744,38 +712,28 @@ export default function AsteroidSimulator({
       }
 
       const delta = clock.getDelta();
-      
-      // Animate simulated clock based on simulation speed
-      // 1.0 speed = real-time rotation. Speed coefficients scale time forward!
       accumulatedTime += delta * current.simulationSpeed;
 
-      // Rotate Earth (Geocentric view)
+      // Rotate Earth
       earthMesh.rotation.y += 0.05 * delta;
 
       // Rotate Moon around Earth
       moonGroup.rotation.y += 0.03 * delta * (1.0 + Math.log10(current.simulationSpeed + 1));
 
-      // Update Moon emissive selection/hover glow dynamically
       const isMoonSelected = current.selectedId === "moon";
       const isMoonHovered = current.hoveredId === "moon";
       moonMat.emissive.setHex(isMoonSelected ? 0x00f2ff : isMoonHovered ? 0x0088ff : 0x000000);
       moonMat.emissiveIntensity = isMoonSelected ? 0.6 : isMoonHovered ? 0.35 : 0;
 
-      // Animate Starfield slowly to add life to space
       starfield.rotation.y += 0.002 * delta;
 
-      // ANIMATE NEAR EARTH ASTEROIDS ON THEIR PREDICTED ROUTING PATHS
       renderedAsteroidsPool.forEach((item) => {
         const ast = item.asteroid;
         const mesh = item.mesh;
 
-        // Subtle self-spin for the rock
         mesh.rotation.x += 0.15 * delta;
         mesh.rotation.y += 0.08 * delta;
 
-        // --- GEOCENTRIC POSITION CALCULATION ---
-        // Position relative to Earth. Closest approach is center (P_0).
-        // Draw approaching straight/hyperbolic flyby trajectory
         const scaledMissDistance = 1.2 + Math.log2(ast.missDistanceLd + 1) * 2.2;
         const seedAngle = ((parseFloat(ast.id) * 31) % 100) / 100 * Math.PI * 2;
         const seedInclination = (((parseFloat(ast.id) * 7) % 50) - 25) / 180 * Math.PI;
@@ -788,24 +746,18 @@ export default function AsteroidSimulator({
 
         const flybyDir = new THREE.Vector3(-p0.z, p0.y * 0.3, p0.x).normalize();
 
-        // Calculate current relative time offsets
-        // Speed scaling derives directly from NASA's close approach relative velocity (ast.velocityKms)
         let speedFactor;
         if (ast.id === current.selectedId && current.showPredictedRoute) {
-          // Accelerate animation speed so users can trace the routing path cleanly
           speedFactor = (ast.velocityKms / 10.0) * 0.45;
         } else {
-          // Real, majestic slow motion proportional to relative data velocity (avoids fake feeling)
           speedFactor = ast.velocityKms * 0.0015;
         }
 
         const animOffset = ((accumulatedTime * 0.1 * speedFactor) % 60) - 30;
 
-        // Set active rock position
         const currentPos = p0.clone().addScaledVector(flybyDir, animOffset);
         mesh.position.copy(currentPos);
 
-        // Update Earth-to-Asteroid indicator line
         if (item.vectorLine && ast.id === current.selectedId) {
           const posAttr = item.vectorLine.geometry.attributes.position;
           posAttr.setXYZ(1, currentPos.x, currentPos.y, currentPos.z);
@@ -813,7 +765,6 @@ export default function AsteroidSimulator({
         }
       });
 
-      // Camera focal focus: smoothly interpolate camera target to the selected object/asteroid/Moon
       if (current.selectedId === "moon") {
         const moonWorldPos = new THREE.Vector3();
         moonMesh.getWorldPosition(moonWorldPos);
@@ -821,11 +772,9 @@ export default function AsteroidSimulator({
       } else if (current.selectedId) {
         const targetRa = renderedAsteroidsPool.find((ra) => ra.id === current.selectedId);
         if (targetRa) {
-          // Smoothly pan orbit controls target to the selected asteroid's position
           controls.target.lerp(targetRa.mesh.position, 0.08);
         }
       } else {
-        // Smoothly return target focus to Earth at (0,0,0)
         controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.08);
       }
 
@@ -833,7 +782,6 @@ export default function AsteroidSimulator({
       renderer.render(scene, camera);
     };
 
-    // Trigger the render loop
     animate();
 
     // 11. RESIZE HANDLER
@@ -859,7 +807,6 @@ export default function AsteroidSimulator({
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
 
-      // Dispose of scene elements to avoid memory leaks
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           if (obj.geometry) obj.geometry.dispose();

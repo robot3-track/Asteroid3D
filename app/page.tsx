@@ -5,14 +5,10 @@ export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Orbit, 
-  Compass, 
-  Radio, 
   ShieldAlert, 
   Activity, 
   AlertOctagon, 
   Database,
-  ArrowRight,
-  Info,
   Table,
   Target,
   Globe
@@ -27,7 +23,6 @@ export default function Home() {
   const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPredictedRoute, setShowPredictedRoute] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<"geocentric" | "heliocentric">("geocentric");
   const [simulationSpeed, setSimulationSpeed] = useState<number>(15);
   const [filterHazardousOnly, setFilterHazardousOnly] = useState<boolean>(false);
   const [filterSizeMin, setFilterSizeMin] = useState<number>(0);
@@ -232,8 +227,6 @@ export default function Home() {
                   asteroids={asteroids}
                   selectedId={selectedId}
                   onSelectAsteroid={handleSelectAsteroid}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
                   simulationSpeed={simulationSpeed}
                   onSimulationSpeedChange={setSimulationSpeed}
                   filterHazardousOnly={filterHazardousOnly}
@@ -407,7 +400,7 @@ export default function Home() {
           <span className="uppercase text-zinc-500">DATABASE STREAM: NASA NEO API (NEOWS)</span>
         </div>
         <div className="flex items-center gap-4 text-zinc-500 uppercase">
-          <span>COORDINATES: ECLIPTIC HELIOCENTRIC / GEOCENTRIC ZENITH</span>
+          <span>COORDINATES: GEOCENTRIC ZENITH</span>
           <span>SYSTEM CLOCK: UTC</span>
         </div>
       </footer>

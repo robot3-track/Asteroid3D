@@ -36,7 +36,8 @@ jobs:
 
       - name: Sync Web Assets to Capacitor Android Project
         run: |
-          npx cap init "Asteroid Simulator" "com.asteroid.simulator" --web-dir=out || true
+          mkdir -p out
+          touch out/index.html
           npx cap add android || true
           npx cap sync android
 

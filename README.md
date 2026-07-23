@@ -1,4 +1,5 @@
 # NASA Live Asteroid 3D Simulator
+[![Build Android APK Artifact](https://github.com/robot3-track/Asteroid3D/actions/workflows/android-build.yml/badge.svg)](https://github.com/robot3-track/Asteroid3D/actions/workflows/android-build.yml)
 
 ![Screenshot](asteroid.png)
 

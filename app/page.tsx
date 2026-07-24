@@ -264,10 +264,10 @@ export default function Home() {
                       <Target className="w-5 h-5" />
                     </div>
                     <h4 className="text-white text-[10px] font-bold uppercase tracking-wider">
-                      TARGET TELEMETRY OFFLINE
+                      SPACE SEARCH INACTIVE
                     </h4>
                     <p className="text-zinc-500 text-[9px] mt-1.5 leading-relaxed uppercase">
-                      Select a space rock or the Moon from the list to synchronize details, orbital path, and size comparisons.
+                      Select a space rock or the Moon from the list to synchronize details, orbital path, and/or size comparisons!
                     </p>
                   </div>
                 )}
@@ -379,7 +379,7 @@ export default function Home() {
                     <Table className="w-5 h-5" />
                   </div>
                   <h4 className="text-white text-[10px] font-bold uppercase tracking-wider">
-                    TARGET SELECT STANDBY
+                    SEARCH STANDBY
                   </h4>
                   <p className="text-zinc-500 text-[9px] mt-1.5 leading-relaxed uppercase">
                     Select any catalog row from the telemetry table to synchronize sensor values and display orbital dimensions.

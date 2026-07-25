@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw } from "lucide-react";
+import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw, Filter } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
 
 interface ControlPanelProps {
@@ -38,18 +38,14 @@ export default function ControlPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  // Memoize filtered items to prevent computational layout blocking on simulation ticks
   const filteredAsteroids = useMemo(() => {
     return asteroids.filter((ast) => {
-      // Search query
       if (searchQuery && !ast.name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-      // Hazardous filter
       if (filterHazardousOnly && !ast.isHazardous) {
         return false;
       }
-      // Min size threshold filter
       const avgSize = (ast.diameterMinMeters + ast.diameterMaxMeters) / 2;
       if (avgSize < filterSizeMin) {
         return false;
@@ -58,9 +54,16 @@ export default function ControlPanel({
     });
   }, [asteroids, searchQuery, filterHazardousOnly, filterSizeMin]);
 
+  // Date Leap Shortcuts
+  const setToday = () => onTargetDateChange(new Date().toISOString().split("T")[0]);
+  const addDays = (days: number) => {
+    const d = new Date(targetDate || new Date());
+    d.setDate(d.getDate() + days);
+    onTargetDateChange(d.toISOString().split("T")[0]);
+  };
+
   return (
     <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
-      
       {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
       <div className="border-b border-zinc-800 bg-zinc-950/40">
         <button
@@ -79,7 +82,7 @@ export default function ControlPanel({
 
         {settingsExpanded && (
           <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4">
-            {/* DATE SELECTOR */}
+            {/* DATE SELECTOR + QUICK LEAPS */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[9px] text-zinc-400 flex items-center gap-1.5 font-bold uppercase">
@@ -105,10 +108,50 @@ export default function ControlPanel({
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
                 </button>
               </div>
+
+              {/* Quick Jump Buttons */}
+              <div className="flex gap-1 pt-1">
+                <button onClick={setToday} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  Today
+                </button>
+                <button onClick={() => addDays(7)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  +7 Days
+                </button>
+                <button onClick={() => addDays(30)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  +30 Days
+                </button>
+              </div>
+            </div>
+
+            {/* PRESET FILTER BUTTONS */}
+            <div className="space-y-1.5 border-t border-zinc-900 pt-3">
+              <span className="text-[9px] text-zinc-400 font-bold uppercase flex items-center gap-1">
+                <Filter className="w-3 h-3 text-cyan-400" /> Filter Presets
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => {
+                    onFilterHazardousChange(true);
+                    onFilterSizeChange(0);
+                  }}
+                  className="p-1.5 bg-red-950/30 border border-red-900 text-red-400 text-[8px] uppercase text-left font-bold"
+                >
+                  [!] Hazard Only
+                </button>
+                <button
+                  onClick={() => {
+                    onFilterHazardousChange(false);
+                    onFilterSizeChange(300);
+                  }}
+                  className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-[8px] uppercase text-left font-bold"
+                >
+                  [+] Large (&gt;300m)
+                </button>
+              </div>
             </div>
 
             {/* SIMULATION SPEED */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 border-t border-zinc-900 pt-3">
               <div className="flex items-center justify-between text-[9px] text-zinc-400">
                 <span className="font-bold uppercase">Time Warp Speed</span>
                 <span className="text-white font-bold font-mono">
@@ -133,20 +176,11 @@ export default function ControlPanel({
                   onChange={(e) => onSimulationSpeedChange(parseInt(e.target.value, 10))}
                   className="flex-1 h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
                 />
-                <button
-                  id="warp-speed-btn"
-                  onClick={() => onSimulationSpeedChange(150)}
-                  className="p-1.5 bg-zinc-900 text-zinc-400 hover:text-white rounded-none border border-zinc-800 hover:border-zinc-700 transition-all text-[9px]"
-                  title="Warp speed (150x)"
-                >
-                  Max
-                </button>
               </div>
             </div>
 
-            {/* FILTERS SECTION */}
+            {/* SEARCH & DETAILED FILTERS */}
             <div className="space-y-3 pt-2 border-t border-zinc-900">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2 w-3 h-3 text-zinc-600" />
                 <input
@@ -159,7 +193,6 @@ export default function ControlPanel({
                 />
               </div>
 
-              {/* Hazard Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-[9px] text-zinc-300 uppercase flex items-center gap-1.5 font-bold">
                   <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
@@ -176,7 +209,6 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* Size Filter Slider */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[9px] text-zinc-400">
                   <span className="uppercase">Min Size</span>
@@ -217,11 +249,6 @@ export default function ControlPanel({
               <div>
                 <h5 className="text-white text-xs font-bold leading-none uppercase flex items-center gap-1.5">
                   The Moon (Luna)
-                  {selectedId === "moon" && (
-                    <span className="text-[8px] bg-cyan-900/80 text-cyan-300 px-1 py-0.2 border border-cyan-500/40 font-mono">
-                      ACTIVE TARGET
-                    </span>
-                  )}
                 </h5>
                 <p className="text-[8px] text-zinc-500 uppercase mt-1">
                   Earth&apos;s Natural Satellite • 384,400 KM
@@ -235,27 +262,17 @@ export default function ControlPanel({
         </div>
       </div>
 
-      {/* 3. ASTEROID LIST HEADER */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-950 border-b border-zinc-800 text-[10px]">
-        <span className="text-zinc-400 font-bold uppercase">
-          Space Rocks Feed ({filteredAsteroids.length})
-        </span>
-        <span className="text-zinc-500 uppercase">Nearest First</span>
-      </div>
-
-      {/* 4. ASTEROID LIST FEED */}
+      {/* 3. ASTEROID LIST FEED */}
       <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
         {filteredAsteroids.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
             <HelpCircle className="w-6 h-6 text-zinc-700 animate-pulse" />
             <p className="text-zinc-500 text-[10px] uppercase">NO OBJECTS DETECTED</p>
-            <p className="text-zinc-600 text-[9px] uppercase">ADJUST FILTERS</p>
           </div>
         ) : (
           filteredAsteroids.map((ast) => {
             const isSelected = ast.id === selectedId;
             const avgSize = Math.round((ast.diameterMinMeters + ast.diameterMaxMeters) / 2);
-            
             return (
               <div
                 key={ast.id}
@@ -268,31 +285,28 @@ export default function ControlPanel({
                 }`}
               >
                 <div className="flex items-start justify-between gap-1.5">
-                  <div className="truncate">
-                    <h5 className="text-white text-xs font-bold truncate leading-none">
-                      {ast.name}
-                    </h5>
-                  </div>
+                  <h5 className="text-white text-xs font-bold truncate leading-none">
+                    {ast.name}
+                  </h5>
                   {ast.isHazardous && (
-                    <span className="flex-shrink-0 flex items-center gap-1 bg-red-950 text-red-500 text-[8px] px-1.5 py-0.5 border border-red-900 font-bold leading-none uppercase tracking-wider">
+                    <span className="flex-shrink-0 flex items-center gap-1 bg-red-950 text-red-500 text-[8px] px-1.5 py-0.5 border border-red-900 font-bold uppercase">
                       <AlertTriangle className="w-2 h-2" />
                       HAZARD
                     </span>
                   )}
                 </div>
-
-                <div className="grid grid-cols-3 gap-1 mt-2 text-[9px] text-zinc-500 leading-none">
+                <div className="grid grid-cols-3 gap-1 mt-2 text-[9px] text-zinc-500">
                   <div>
-                    <span className="block text-zinc-600 uppercase text-[8px] mb-0.5">Size</span>
+                    <span className="block text-zinc-600 uppercase text-[8px]">Size</span>
                     <span className="font-bold text-zinc-300">{avgSize}m</span>
                   </div>
                   <div>
-                    <span className="block text-zinc-600 uppercase text-[8px] mb-0.5">Velocity</span>
+                    <span className="block text-zinc-600 uppercase text-[8px]">Velocity</span>
                     <span className="font-bold text-zinc-300">{ast.velocityKms.toFixed(1)}k/s</span>
                   </div>
                   <div className="text-right">
-                    <span className="block text-zinc-600 uppercase text-[8px] mb-0.5">Miss</span>
-                    <span className={`font-bold ${ast.missDistanceLd < 1 ? "text-amber-500 font-black" : "text-zinc-300"}`}>
+                    <span className="block text-zinc-600 uppercase text-[8px]">Miss</span>
+                    <span className={`font-bold ${ast.missDistanceLd < 1 ? "text-amber-500" : "text-zinc-300"}`}>
                       {ast.missDistanceLd.toFixed(1)} LD
                     </span>
                   </div>

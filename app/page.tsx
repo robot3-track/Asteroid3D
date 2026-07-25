@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Orbit, 
@@ -14,6 +12,7 @@ import {
   Bomb,
   Rocket
 } from "lucide-react";
+
 import AsteroidSimulator from "@/components/AsteroidSimulator";
 import ControlPanel from "@/components/ControlPanel";
 import AsteroidDetails from "@/components/AsteroidDetails";
@@ -32,10 +31,8 @@ export default function Home() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(true);
   
-  // Menu tab state to see individual views one at a time to simplify UI clutter
   const [viewTab, setViewTab] = useState<"simulator" | "feed">("simulator");
   
-  // Modal states for Sandbox Features
   const [activeImpactModalAsteroid, setActiveImpactModalAsteroid] = useState<Asteroid | null>(null);
   const [activeDartModalAsteroid, setActiveDartModalAsteroid] = useState<Asteroid | null>(null);
 
@@ -52,84 +49,68 @@ export default function Home() {
     }
   }, []);
 
-  // Synchronize and fetch asteroid data from server-side API route
-  const fetchAsteroidsData = useCallback(async (dateStr: string, active: boolean = true) => {
+  // Fetch telemetry data with AbortController for clean lifecycle handling
+  const fetchAsteroidsData = useCallback(async (dateStr: string, signal?: AbortSignal) => {
     if (!dateStr) return;
 
-    setTimeout(() => {
-      if (active) {
-        setLoading(true);
-        setError(null);
-      }
-    }, 0);
+    setLoading(true);
+    setError(null);
 
     try {
-      const res = await fetch(`/api/asteroids?date=${dateStr}`);
+      const res = await fetch(`/api/asteroids?date=${dateStr}`, { signal });
       if (!res.ok) {
         throw new Error(`Server returned error ${res.status}`);
       }
       const data = await res.json();
-      if (active) {
-        if (data.success) {
-          setAsteroids(data.asteroids);
-          if (data.asteroids.length > 0) {
-            setSelectedId((prevSelected) => {
-              if (prevSelected === "moon") return "moon";
-              if (!prevSelected) return null;
-              const stillExists = data.asteroids.some((a: Asteroid) => a.id === prevSelected);
-              return stillExists ? prevSelected : null;
-            });
-          }
-        } else {
-          throw new Error(data.error || "Failed to load asteroids");
+
+      if (data.success) {
+        setAsteroids(data.asteroids);
+        if (data.asteroids.length > 0) {
+          setSelectedId((prevSelected) => {
+            if (prevSelected === "moon") return "moon";
+            if (!prevSelected) return null;
+            const stillExists = data.asteroids.some((a: Asteroid) => a.id === prevSelected);
+            return stillExists ? prevSelected : null;
+          });
         }
+      } else {
+        throw new Error(data.error || "Failed to load asteroids");
       }
     } catch (err: unknown) {
-      if (active) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to sync with space orbital sensors.";
-        setError(errorMessage);
-      }
+      if (err instanceof Error && err.name === "AbortError") return;
+      const errorMessage = err instanceof Error ? err.message : "Failed to sync with space orbital sensors.";
+      setError(errorMessage);
     } finally {
-      if (active) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    const timer = setTimeout(() => {
-      fetchAsteroidsData(targetDate, active);
-    }, 0);
+    const controller = new AbortController();
+    fetchAsteroidsData(targetDate, controller.signal);
+
     return () => {
-      active = false;
-      clearTimeout(timer);
+      controller.abort();
     };
   }, [targetDate, fetchAsteroidsData]);
 
   const selectedAsteroid = asteroids.find((a) => a.id === selectedId) || null;
-
-  // Global stats
   const totalCount = asteroids.length;
   const hazardousCount = asteroids.filter((a) => a.isHazardous).length;
-  
+
   return (
     <main className="h-screen w-full relative flex flex-col font-mono transition-colors duration-300 overflow-hidden bg-black text-zinc-300">
       
-      {/* 1. RETRO-SCIENTIFIC HEADER & VIEW SELECTOR */}
+      {/* HEADER & VIEW SELECTOR */}
       <header className="flex-none relative z-20 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 border-b border-zinc-800 transition-colors bg-zinc-950">
-        
-        {/* Title Block */}
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 border border-cyan-500/40 bg-zinc-950 text-cyan-400 rounded-none shadow-[0_0_12px_rgba(34,211,238,0.2)]">
             <Globe className="w-4.5 h-4.5 text-cyan-400 animate-[spin_16s_linear_infinite]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xs font-black tracking-widest leading-none text-white">
-                LIVE ASTEROID 3D SIMULATOR
-              </h1>
-            </div>
+            <h1 className="text-xs font-black tracking-widest leading-none text-white">
+              LIVE ASTEROID 3D SIMULATOR
+            </h1>
             <p className="text-[9px] text-zinc-500 mt-0.5 uppercase tracking-wider flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-cyan-400" />
               NASA Near-Earth Object Observation Stream
@@ -137,7 +118,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 2. THE CHOSEN INDIVIDUAL VIEWS TOGGLE (MENU TOGGLE) */}
+        {/* MODE TOGGLES */}
         <div className="flex items-center justify-center">
           <div className="flex border border-zinc-800 bg-black p-0.5 rounded-none">
             <button
@@ -166,8 +147,6 @@ export default function Home() {
             </button>
           </div>
         </div>
-
-        <div className="flex items-center gap-2"></div>
       </header>
 
       {/* ERROR STATUS BANNER */}
@@ -185,13 +164,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* 2. MAIN OBSERVER WORKSPACE CONTAINER */}
+      {/* WORKSPACE AREA */}
       <div className="flex-1 w-full relative overflow-hidden flex flex-col min-h-0">
         
-        {/* VIEW TAB A: 3D SPACE SIMULATOR */}
+        {/* VIEW TAB A: 3D SIMULATOR */}
         {viewTab === "simulator" && (
           <div className="relative w-full h-full overflow-hidden">
-            {/* Background 3D Canvas */}
             <div className="absolute inset-0 z-0">
               <AsteroidSimulator
                 asteroids={asteroids}
@@ -204,7 +182,7 @@ export default function Home() {
               />
             </div>
 
-            {/* Sidebar Toggle Buttons Overlay */}
+            {/* Sidebar Toggles */}
             <div className="absolute top-3 left-3 z-40 flex gap-2 pointer-events-auto">
               <button
                 id="toggle-left-sidebar-btn"
@@ -225,7 +203,7 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Sidebar Left Controls */}
+            {/* Left Drawer */}
             <div className={`absolute top-12 left-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[320px] pointer-events-none transition-all duration-300 ${
               leftSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -248,7 +226,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sidebar Right Target Details */}
+            {/* Right Drawer */}
             <div className={`absolute top-12 right-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[380px] pointer-events-none transition-all duration-300 ${
               rightSidebarOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -283,11 +261,9 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW TAB C: DETAILED TELEMETRY GRID/TABLE */}
+        {/* VIEW TAB B: TELEMETRY GRID */}
         {viewTab === "feed" && (
           <div className="w-full h-full p-4 overflow-y-auto flex flex-col lg:flex-row gap-4 items-start">
-            
-            {/* Grid / Table area */}
             <div className="flex-1 w-full bg-black border border-zinc-800 p-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
                 <div>
@@ -308,7 +284,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Grid Content */}
               <div className="overflow-x-auto mt-4">
                 <table className="w-full text-left border-collapse text-[10px]">
                   <thead>
@@ -405,10 +380,8 @@ export default function Home() {
                 </div>
               )}
             </div>
-
           </div>
         )}
-
       </div>
 
       {/* FOOTER BAR */}
@@ -423,7 +396,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* SANDBOX MODAL OVERLAYS */}
+      {/* MODAL OVERLAYS */}
       {activeImpactModalAsteroid && (
         <ImpactSimulatorModal
           asteroid={activeImpactModalAsteroid}
@@ -437,7 +410,6 @@ export default function Home() {
           onClose={() => setActiveDartModalAsteroid(null)}
         />
       )}
-
     </main>
   );
 }

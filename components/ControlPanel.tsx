@@ -35,6 +35,24 @@ interface ControlPanelProps {
   onRefetch: () => void;
 }
 
+// Fallback baseline target with type assertion ('as Asteroid') to satisfy TypeScript rules
+const DEFAULT_TARGET = {
+  id: "default-baseline",
+  name: "Baseline Target (150m)",
+  nasaUrl: "",
+  diameterMinMeters: 120,
+  diameterMaxMeters: 180,
+  velocityKms: 22.5,
+  velocityKmh: 81000,
+  missDistanceKm: 461280,
+  missDistanceLd: 1.2,
+  isHazardous: true,
+  closeApproachDate: new Date().toISOString().split("T")[0],
+  closeApproachTime: "12:00",
+  epochCloseApproach: Date.now(),
+  orbitingBody: "Earth",
+} as Asteroid;
+
 export default function ControlPanel({
   asteroids,
   selectedId,
@@ -53,14 +71,15 @@ export default function ControlPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  // Modal active states
+  // Modal open states
   const [isDartModalOpen, setIsDartModalOpen] = useState(false);
   const [isImpactModalOpen, setIsImpactModalOpen] = useState(false);
 
-  // Derive the currently active selected asteroid object (if any)
-  const selectedAsteroid = useMemo(() => {
-    if (!selectedId || selectedId === "moon") return null;
-    return asteroids.find((ast) => ast.id === selectedId) || null;
+  // Safely find selected asteroid or fallback to default target object
+  const activeAsteroid = useMemo(() => {
+    if (!selectedId || selectedId === "moon") return DEFAULT_TARGET;
+    const found = asteroids.find((ast) => ast.id === selectedId);
+    return found || DEFAULT_TARGET;
   }, [asteroids, selectedId]);
 
   const filteredAsteroids = useMemo(() => {
@@ -89,41 +108,7 @@ export default function ControlPanel({
 
   return (
     <>
-      <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
-        {/* 0. TACTICAL SIMULATORS ACTION BAR */}
-        <div className="p-2.5 bg-zinc-950 border-b border-zinc-800 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[9px] text-zinc-400 uppercase tracking-wider font-bold">
-            <span>Tactical Simulators</span>
-            <span className="text-cyan-400">
-              {selectedAsteroid ? `Target: ${selectedAsteroid.name}` : "Target: Default Earth"}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {/* DART DEFLECTION BUTTON */}
-            <button
-              onClick={() => setIsDartModalOpen(true)}
-              className="group relative flex items-center justify-center gap-1.5 p-2 bg-gradient-to-b from-cyan-950/80 to-black hover:from-cyan-900/80 border border-cyan-800/80 hover:border-cyan-400 text-cyan-300 hover:text-white transition-all shadow-[0_0_10px_rgba(34,211,238,0.15)]"
-            >
-              <Crosshair className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                DART Kinetic
-              </span>
-            </button>
-
-            {/* IMPACT CALCULATOR BUTTON */}
-            <button
-              onClick={() => setIsImpactModalOpen(true)}
-              className="group relative flex items-center justify-center gap-1.5 p-2 bg-gradient-to-b from-red-950/80 to-black hover:from-red-900/80 border border-red-800/80 hover:border-red-500 text-red-300 hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0.15)]"
-            >
-              <Flame className="w-3.5 h-3.5 text-red-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Impact Effects
-              </span>
-            </button>
-          </div>
-        </div>
-
+      <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-hidden shadow-none font-mono text-xs">
         {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
         <div className="border-b border-zinc-800 bg-zinc-950/40">
           <button
@@ -141,7 +126,7 @@ export default function ControlPanel({
           </button>
 
           {settingsExpanded && (
-            <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4">
+            <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4 max-h-[300px] overflow-y-auto">
               {/* DATE SELECTOR + QUICK LEAPS */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
@@ -323,7 +308,7 @@ export default function ControlPanel({
         </div>
 
         {/* 3. ASTEROID LIST FEED */}
-        <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
           {filteredAsteroids.length === 0 ? (
             <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
               <HelpCircle className="w-6 h-6 text-zinc-700 animate-pulse" />
@@ -376,9 +361,41 @@ export default function ControlPanel({
             })
           )}
         </div>
+
+        {/* 4. BOTTOM FOOTER: TACTICAL SIMULATORS BAR */}
+        <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-[9px] text-zinc-400 uppercase tracking-wider font-bold">
+            <span>Simulators</span>
+            <span className="text-cyan-400 truncate max-w-[150px]">
+              {selectedId && selectedId !== "moon" ? activeAsteroid.name : "Target: Default Baseline"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setIsDartModalOpen(true)}
+              className="group flex items-center justify-center gap-1.5 p-2 bg-zinc-900 hover:bg-cyan-950/50 border border-zinc-800 hover:border-cyan-500 text-cyan-400 transition-all"
+            >
+              <Crosshair className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                DART Impact
+              </span>
+            </button>
+
+            <button
+              onClick={() => setIsImpactModalOpen(true)}
+              className="group flex items-center justify-center gap-1.5 p-2 bg-zinc-900 hover:bg-red-950/50 border border-zinc-800 hover:border-red-500 text-red-400 transition-all"
+            >
+              <Flame className="w-3.5 h-3.5 text-red-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Impact Effects
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* DART DEFLECTION MODAL OVERLAY */}
+      {/* DART SIMULATOR MODAL OVERLAY */}
       {isDartModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative w-full max-w-4xl max-h-[90vh] bg-black border border-zinc-800 shadow-2xl flex flex-col overflow-hidden">
@@ -396,7 +413,8 @@ export default function ControlPanel({
             <div className="flex-1 overflow-y-auto p-4">
               <DartSimulatorModal
                 {...({
-                  asteroid: selectedAsteroid,
+                  asteroid: activeAsteroid,
+                  selectedAsteroid: activeAsteroid,
                   onClose: () => setIsDartModalOpen(false)
                 } as any)}
               />
@@ -423,7 +441,8 @@ export default function ControlPanel({
             <div className="flex-1 overflow-y-auto p-4">
               <ImpactSimulatorModal
                 {...({
-                  asteroid: selectedAsteroid,
+                  asteroid: activeAsteroid,
+                  selectedAsteroid: activeAsteroid,
                   onClose: () => setIsImpactModalOpen(false)
                 } as any)}
               />

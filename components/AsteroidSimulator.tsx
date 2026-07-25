@@ -91,17 +91,13 @@ export default function AsteroidSimulator({
     renderer.shadowMap.enabled = false;
     renderer.setClearColor(0x06060c, 1);
 
-    // Add Ambient and Directional Lights
-    const ambientLight = new THREE.AmbientLight(0x22223b, 1.5);
+    // Add Ambient and Solar Directional Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
     sunLight.position.set(50, 30, 50);
     scene.add(sunLight);
-
-    const blueLight = new THREE.PointLight(0x00f2ff, 1.5, 50);
-    blueLight.position.set(-10, 5, -10);
-    scene.add(blueLight);
 
     // Controls - limit zoom to stay beautifully framed inside our celestial system
     const controls = new OrbitControls(camera, canvas);
@@ -110,77 +106,7 @@ export default function AsteroidSimulator({
     controls.maxDistance = 100;
     controls.minDistance = 3.5;
 
-    // 2. HELPER: CREATE PROCEDURAL TEXTURE FOR EARTH
-    // Avoids fetching megabytes of satellite maps - loads instantly with premium sci-fi style
-    const createEarthCanvasTexture = (): THREE.CanvasTexture => {
-      const c = document.createElement("canvas");
-      c.width = 1024;
-      c.height = 512;
-      const ctx = c.getContext("2d")!;
-
-      // Deep space grid background
-      ctx.fillStyle = "#0c0e17";
-      ctx.fillRect(0, 0, 1024, 512);
-
-      // Draw latitude / longitude grid
-      ctx.strokeStyle = "rgba(0, 132, 255, 0.15)";
-      ctx.lineWidth = 1;
-      
-      // Parallels (Latitudes)
-      const latCount = 18;
-      for (let i = 0; i <= latCount; i++) {
-        const y = (512 / latCount) * i;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(1024, y);
-        ctx.stroke();
-      }
-      
-      // Meridians (Longitudes)
-      const lonCount = 36;
-      for (let i = 0; i <= lonCount; i++) {
-        const x = (1024 / lonCount) * i;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 512);
-        ctx.stroke();
-      }
-
-      // Draw procedural futuristic continent wireframes
-      ctx.fillStyle = "rgba(0, 242, 255, 0.25)";
-      ctx.strokeStyle = "rgba(0, 242, 255, 0.7)";
-      ctx.lineWidth = 1.5;
-
-      // Draw styled blocks representing continents
-      const drawContinent = (x: number, y: number, w: number, h: number, points: [number, number][]) => {
-        ctx.beginPath();
-        ctx.moveTo(x + points[0][0], y + points[0][1]);
-        for (let i = 1; i < points.length; i++) {
-          ctx.lineTo(x + points[i][0], y + points[i][1]);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-      };
-
-      // North America
-      drawContinent(100, 80, 200, 150, [[0,0], [180,20], [220,110], [140,150], [70,120], [0,60]]);
-      // South America
-      drawContinent(250, 230, 120, 180, [[0,0], [90,40], [60,180], [10,130], [-10,50]]);
-      // Eurasia
-      drawContinent(480, 60, 350, 160, [[0,40], [120,-10], [320,0], [350,110], [250,150], [110,140], [50,90]]);
-      // Africa
-      drawContinent(520, 200, 140, 160, [[10,0], [120,20], [130,90], [80,160], [40,160], [0,60]]);
-      // Australia
-      drawContinent(820, 260, 110, 80, [[0,20], [80,0], [110,40], [60,80], [10,70]]);
-
-      const tex = new THREE.CanvasTexture(c);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.ClampToEdgeWrapping;
-      return tex;
-    };
-
-    // Helper: Create a high-fidelity procedural Moon texture map to ensure beautiful craters with no network load latency
+    // Helper: Create a high-fidelity procedural Moon texture map
     const createMoonCanvasTexture = (): THREE.CanvasTexture => {
       const c = document.createElement("canvas");
       c.width = 512;
@@ -233,7 +159,7 @@ export default function AsteroidSimulator({
         }
       };
 
-      // Famous large craters (Tycho, Copernicus, Kepler)
+      // Famous large craters
       const craters = [
         { x: 240, y: 180, r: 13, rays: true },
         { x: 160, y: 80, r: 8, rays: false },
@@ -257,27 +183,9 @@ export default function AsteroidSimulator({
         drawCrater(bc.x, bc.y, bc.r);
       });
 
-      // Scattered impact craters for realistic feel
+      // Scattered impact craters
       for (let i = 0; i < 45; i++) {
         drawCrater(Math.random() * 512, Math.random() * 256, 1.5 + Math.random() * 4);
-      }
-
-      // Coordinate grids
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-      ctx.lineWidth = 0.5;
-      for (let i = 1; i < 8; i++) {
-        const x = (512 / 8) * i;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 256);
-        ctx.stroke();
-      }
-      for (let i = 1; i < 4; i++) {
-        const y = (256 / 4) * i;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(512, y);
-        ctx.stroke();
       }
 
       const tex = new THREE.CanvasTexture(c);
@@ -286,7 +194,7 @@ export default function AsteroidSimulator({
       return tex;
     };
 
-    // 3. CREATE PROCEDURAL STARFIELD
+    // 2. CREATE PROCEDURAL STARFIELD
     const starsCount = 800;
     const starsGeo = new THREE.BufferGeometry();
     const starsPositions = new Float32Array(starsCount * 3);
@@ -301,7 +209,6 @@ export default function AsteroidSimulator({
     ];
 
     for (let i = 0; i < starsCount; i++) {
-      // Position inside a large sphere
       const r = 200 + Math.random() * 200;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
@@ -312,7 +219,6 @@ export default function AsteroidSimulator({
 
       starsSizes[i] = 1.0 + Math.random() * 2.5;
 
-      // Color variation
       const col = colorOptions[Math.floor(Math.random() * colorOptions.length)];
       starsColors[i * 3] = col.r;
       starsColors[i * 3 + 1] = col.g;
@@ -332,55 +238,42 @@ export default function AsteroidSimulator({
     const starfield = new THREE.Points(starsGeo, starsMat);
     scene.add(starfield);
 
-    // 4. SCENE OBJECT GROUPINGS
+    // 3. SCENE OBJECT GROUPINGS
     const earthGroup = new THREE.Group();
     scene.add(earthGroup);
 
-    // Geocentric visual indicators
     const geocentricIndicators = new THREE.Group();
     scene.add(geocentricIndicators);
 
-    // 5. BUILD GEOCENTRIC OBJECTS (EARTH & MOON)
+    // 4. BUILD HIGH-REALISM EARTH (MATCHING DART SIMULATOR)
     const earthRadius = 1.8;
-    const earthGeo = new THREE.SphereGeometry(earthRadius, 40, 40);
-    const earthTex = createEarthCanvasTexture();
+    const textureLoader = new THREE.TextureLoader();
+
+    // High-resolution photo textures
+    const earthMap = textureLoader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg");
+    const earthSpecular = textureLoader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg");
+    const earthNormal = textureLoader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg");
+
+    const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
-      map: earthTex,
-      shininess: 40,
-      bumpScale: 0.05,
-      specular: new THREE.Color(0x00f2ff)
+      map: earthMap,
+      specularMap: earthSpecular,
+      normalMap: earthNormal,
+      specular: new THREE.Color(0x333333),
+      shininess: 15,
     });
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
     earthGroup.add(earthMesh);
 
-    // Asynchronously load actual NASA Blue Marble satellite imagery globe texture
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.setCrossOrigin("anonymous");
-    textureLoader.load(
-      "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-      (loadedTex) => {
-        loadedTex.wrapS = THREE.RepeatWrapping;
-        loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-        earthMat.map = loadedTex;
-        earthMat.needsUpdate = true;
-      },
-      undefined,
-      (err) => {
-        console.warn("Failed to load satellite imagery, falling back to procedural sci-fi globe:", err);
-      }
-    );
-
-    // Atmospheric Glow Sphere
-    const glowGeo = new THREE.SphereGeometry(earthRadius * 1.15, 32, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0x00a2ff,
+    // Earth Atmosphere Glow Ring
+    const atmosGeo = new THREE.SphereGeometry(earthRadius * 1.03, 32, 32);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x3b82f6,
       transparent: true,
-      opacity: 0.15,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.18,
       side: THREE.BackSide
     });
-    const earthGlow = new THREE.Mesh(glowGeo, glowMat);
-    earthGroup.add(earthGlow);
+    earthMesh.add(new THREE.Mesh(atmosGeo, atmosMat));
 
     // Tactical outer coordinate rings around Earth
     const ringGeo = new THREE.RingGeometry(earthRadius * 1.4, earthRadius * 1.42, 64);
@@ -433,7 +326,7 @@ export default function AsteroidSimulator({
     moonOrbitLine.computeLineDistances();
     geocentricIndicators.add(moonOrbitLine);
 
-    // 6. ASTEROID RENDERING REFS & POOL
+    // 5. ASTEROID RENDERING REFS & POOL
     interface RenderedAsteroid {
       id: string;
       asteroid: Asteroid;
@@ -475,9 +368,8 @@ export default function AsteroidSimulator({
       return geo;
     };
 
-    // 8. UPDATE ACTIVE ASTEROIDS SCENE OBJECTS
+    // 6. UPDATE ACTIVE ASTEROIDS SCENE OBJECTS
     const rebuildAsteroidsInScene = () => {
-      // Clear all active asteroid meshes
       renderedAsteroidsPool.forEach((item) => {
         asteroidGroup.remove(item.mesh);
         if (item.trailLine) asteroidGroup.remove(item.trailLine);
@@ -599,7 +491,7 @@ export default function AsteroidSimulator({
     let prevFilterSize = filterSizeMin;
     let prevAsteroidsLength = asteroids.length;
 
-    // 9. EVENT LISTENERS: INTERACTIVE SELECTION VIA RAYCASTING
+    // 7. EVENT LISTENERS: INTERACTIVE SELECTION VIA RAYCASTING
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -687,7 +579,7 @@ export default function AsteroidSimulator({
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
 
-    // 10. ANIMATION LOOP
+    // 8. ANIMATION LOOP
     const clock = new THREE.Clock();
     let accumulatedTime = 0;
 
@@ -784,7 +676,7 @@ export default function AsteroidSimulator({
 
     animate();
 
-    // 11. RESIZE HANDLER
+    // 9. RESIZE HANDLER
     const handleResize = () => {
       if (!containerRef.current || !renderer || !camera) return;
       const w = containerRef.current.clientWidth || window.innerWidth;
@@ -799,7 +691,7 @@ export default function AsteroidSimulator({
     const resizeObserver = new ResizeObserver(() => handleResize());
     resizeObserver.observe(container);
 
-    // 12. CLEANUP & MEMORY DISPOSAL ON UNMOUNT
+    // 10. CLEANUP & MEMORY DISPOSAL ON UNMOUNT
     return () => {
       isDestroyed = true;
       window.removeEventListener("resize", handleResize);
@@ -826,7 +718,6 @@ export default function AsteroidSimulator({
 
       controls.dispose();
       renderer.dispose();
-      earthTex.dispose();
     };
   }, []);
 

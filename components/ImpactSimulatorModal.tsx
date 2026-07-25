@@ -1,131 +1,191 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Flame, AlertCircle, Bomb, Globe, Radio } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import { X, AlertTriangle, Shield, Flame, Wind, Activity } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
-import { calculateImpactDamage } from "@/lib/physics";
 
-interface ImpactSimulatorModalProps {
+interface Props {
   asteroid: Asteroid;
   onClose: () => void;
 }
 
-const TARGET_CITIES = [
-  { name: "New York City, USA", lat: 40.7128, lng: -74.006 },
-  { name: "London, UK", lat: 51.5074, lng: -0.1278 },
-  { name: "Tokyo, Japan", lat: 35.6762, lng: 139.6503 },
-  { name: "Paris, France", lat: 48.8566, lng: 2.3522 },
-  { name: "Sydney, Australia", lat: -33.8688, lng: 151.2093 },
-];
+export default function ImpactSimulatorModal({ asteroid, onClose }: Props) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
 
-export default function ImpactSimulatorModal({ asteroid, onClose }: ImpactSimulatorModalProps) {
-  const [selectedTarget, setSelectedTarget] = useState(TARGET_CITIES[0]);
-  const avgSize = Math.round((asteroid.diameterMinMeters + asteroid.diameterMaxMeters) / 2);
-  const damage = calculateImpactDamage(avgSize, asteroid.velocityKms);
+  // Default target: New York City (40.7128, -74.0060)
+  const [lat, setLat] = useState<number>(40.7128);
+  const [lng, setLng] = useState<number>(-74.0060);
+
+  // Calculations derived from diameter (m) and velocity (km/s)
+  const avgDiameter = Math.round((asteroid.diameterMinMeters + asteroid.diameterMaxMeters) / 2);
+  const velocityMs = asteroid.velocityKms * 1000;
+  
+  // Kinetic Energy = 0.5 * Mass * V^2 (assuming density 2500 kg/m^3)
+  const radiusMeters = avgDiameter / 2;
+  const volume = (4 / 3) * Math.PI * Math.pow(radiusMeters, 3);
+  const massKg = volume * 2500;
+  const energyJoules = 0.5 * massKg * Math.pow(velocityMs, 2);
+  const megatonsTNT = energyJoules / 4.184e15;
+
+  // Estimated damage radii in meters
+  const craterRadius = Math.round(1.16 * Math.pow(energyJoules, 0.28));
+  const fireballRadius = Math.round(craterRadius * 2.5);
+  const airblastRadius = Math.round(craterRadius * 6.0);
+  const thermalRadius = Math.round(craterRadius * 12.0);
+
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    const map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: "https://demotiles.maplibre.org/style.json", // Standard vector tile style
+      center: [lng, lat],
+      zoom: 8,
+    });
+
+    mapRef.current = map;
+
+    map.on("load", () => {
+      // Add impact source & layer
+      map.addSource("impact-point", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [lng, lat] },
+              properties: {},
+            },
+          ],
+        },
+      });
+
+      // Add visual circles for damage zones
+      map.addLayer({
+        id: "crater-zone",
+        type: "circle",
+        source: "impact-point",
+        paint: {
+          "circle-radius": Math.min(craterRadius / 100, 150),
+          "circle-color": "#ef4444",
+          "circle-opacity": 0.6,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#dc2626",
+        },
+      });
+
+      map.addLayer({
+        id: "airblast-zone",
+        type: "circle",
+        source: "impact-point",
+        paint: {
+          "circle-radius": Math.min(airblastRadius / 100, 250),
+          "circle-color": "#f97316",
+          "circle-opacity": 0.3,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#ea580c",
+        },
+      });
+    });
+
+    map.on("click", (e) => {
+      setLat(e.lngLat.lat);
+      setLng(e.lngLat.lng);
+      const source = map.getSource("impact-point") as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [e.lngLat.lng, e.lngLat.lat] },
+              properties: {},
+            },
+          ],
+        });
+      }
+    });
+
+    return () => map.remove();
+  }, [lat, lng, craterRadius, airblastRadius]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono text-xs">
-      <div className="bg-black border border-red-900/60 w-full max-w-2xl overflow-hidden shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono">
+      <div className="relative w-full max-w-5xl h-[85vh] bg-zinc-950 border border-zinc-800 flex flex-col overflow-hidden text-zinc-300">
         
-        {/* HEADER */}
-        <div className="p-4 bg-red-950/30 border-b border-red-900/50 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-red-500 font-bold uppercase tracking-wider">
-            <Bomb className="w-4 h-4 animate-bounce" />
-            Impact Damage Estimator: {asteroid.name}
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-black">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h2 className="text-xs font-black uppercase text-white tracking-widest">
+              EARTH IMPACT DAMAGE ESTIMATOR // {asteroid.name}
+            </h2>
           </div>
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-zinc-500 hover:text-white">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* TARGET SELECTION */}
-          <div className="space-y-2">
-            <label className="text-[10px] text-zinc-400 uppercase font-bold flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-cyan-400" /> Select Hypothetical Ground Zero
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {TARGET_CITIES.map((city) => (
-                <button
-                  key={city.name}
-                  onClick={() => setSelectedTarget(city)}
-                  className={`p-2 border text-left font-mono text-[10px] uppercase transition-all ${
-                    selectedTarget.name === city.name
-                      ? "bg-red-950/50 border-red-600 text-white font-bold"
-                      : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  {city.name}
-                </button>
-              ))}
+        {/* Workspace */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Map Area */}
+          <div className="flex-1 relative bg-black">
+            <div ref={mapContainer} className="w-full h-full" />
+            <div className="absolute top-3 left-3 bg-black/90 p-2 border border-zinc-800 text-[9px] text-zinc-400 pointer-events-none">
+              CLICK ANYWHERE ON MAP TO REPOSITION TARGET POINT
             </div>
           </div>
 
-          {/* SIMULATED METRICS GRID */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-zinc-950 border border-zinc-800 p-3">
-              <span className="text-[8px] text-zinc-500 uppercase block font-bold">Kinetic Yield</span>
-              <span className="text-amber-400 font-bold text-sm">{damage.megatonsTNT} MT</span>
-              <span className="text-[8px] text-zinc-600 block mt-0.5">TNT Equivalent</span>
+          {/* Telemetry Sidebar */}
+          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-zinc-800 p-4 bg-zinc-950 flex flex-col gap-4 text-[10px] overflow-y-auto">
+            <div>
+              <span className="text-zinc-500 uppercase block mb-1">Target Coordinates</span>
+              <p className="text-white font-bold">{lat.toFixed(4)}° N, {lng.toFixed(4)}° E</p>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 p-3">
-              <span className="text-[8px] text-zinc-500 uppercase block font-bold">Crater Diameter</span>
-              <span className="text-white font-bold text-sm">{(damage.craterDiameterMeters / 1000).toFixed(2)} km</span>
-              <span className="text-[8px] text-zinc-600 block mt-0.5">Depth: {damage.craterDepthMeters}m</span>
+            <div className="p-3 bg-red-950/30 border border-red-900/50">
+              <span className="text-red-400 font-bold block mb-1">KINETIC YIELD</span>
+              <p className="text-lg font-black text-red-500">{megatonsTNT.toFixed(2)} MT</p>
+              <p className="text-zinc-500 text-[8px] mt-0.5">
+                (~{(megatonsTNT / 0.015).toFixed(0)}x Hiroshima Equivalent)
+              </p>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 p-3">
-              <span className="text-[8px] text-zinc-500 uppercase block font-bold">Blast Wave Radius</span>
-              <span className="text-red-400 font-bold text-sm">{(damage.airBlastRadiusMeters / 1000).toFixed(1)} km</span>
-              <span className="text-[8px] text-zinc-600 block mt-0.5">5 PSI Structural Collapse</span>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-800 p-3">
-              <span className="text-[8px] text-zinc-500 uppercase block font-bold">Seismic Force</span>
-              <span className="text-cyan-400 font-bold text-sm">M {damage.seismicMagnitude}</span>
-              <span className="text-[8px] text-zinc-600 block mt-0.5">Richter Equivalent</span>
-            </div>
-          </div>
-
-          {/* VISUAL DAMAGE RADII GRAPH */}
-          <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-3">
-            <span className="text-[9px] text-zinc-400 font-bold uppercase flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-              Calculated Thermal & Blast Zones at {selectedTarget.name}
-            </span>
-
-            <div className="space-y-2">
-              <div>
-                <div className="flex justify-between text-[9px] uppercase mb-1">
-                  <span className="text-red-400 font-bold flex items-center gap-1"><Flame className="w-3 h-3" /> Fireball Radius</span>
-                  <span className="text-zinc-400 font-bold">{(damage.fireballRadiusMeters / 1000).toFixed(1)} km</span>
-                </div>
-                <div className="h-2 bg-black border border-zinc-800">
-                  <div className="h-full bg-red-600" style={{ width: `${Math.min(100, (damage.fireballRadiusMeters / damage.airBlastRadiusMeters) * 100)}%` }} />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-red-500" />
+                <div>
+                  <span className="text-white font-bold">CRATER RADIUS</span>
+                  <p className="text-zinc-400">{(craterRadius / 1000).toFixed(2)} km diameter</p>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-[9px] uppercase mb-1">
-                  <span className="text-amber-400 font-bold">Severe Overpressure Zone</span>
-                  <span className="text-zinc-400 font-bold">{(damage.airBlastRadiusMeters / 1000).toFixed(1)} km</span>
+              <div className="flex items-center gap-2">
+                <Wind className="w-4 h-4 text-orange-400" />
+                <div>
+                  <span className="text-white font-bold font-mono">AIRBLAST RADIUS</span>
+                  <p className="text-zinc-400">{(airblastRadius / 1000).toFixed(2)} km (Severe Overpressure)</p>
                 </div>
-                <div className="h-2 bg-black border border-zinc-800">
-                  <div className="h-full bg-amber-500" style={{ width: "100%" }} />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-amber-400" />
+                <div>
+                  <span className="text-white font-bold">THERMAL RADIATION</span>
+                  <p className="text-zinc-400">{(thermalRadius / 1000).toFixed(2)} km (3rd Degree Burns)</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* SCIENTIFIC DISCLAIMER */}
-            <div className="p-3 bg-zinc-950 border border-zinc-800 text-[9px] text-zinc-500 leading-relaxed flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-zinc-600 flex-shrink-0 mt-0.5" />
-            <p>
-                Calculations derived using transient crater scaling equations developed by Melosh et al. (Purdue Earth Impact Effects). Estimates assume standard rocky density (2,500 kg/m³) and vertical impact trajectory.
-            </p>
+            <div className="mt-auto p-3 bg-zinc-900 border border-zinc-800 text-[9px] text-zinc-500 leading-relaxed">
+              Calculations derived using transient crater scaling equations developed by Melosh et al. (Purdue Earth Impact Effects). Estimates assume standard rocky density (2,500 kg/m³) and vertical impact trajectory.
             </div>
+          </div>
         </div>
+
       </div>
     </div>
   );

@@ -1,23 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { 
-  Search, 
-  ShieldAlert, 
-  Calendar, 
-  AlertTriangle, 
-  HelpCircle, 
-  Pause, 
-  Play, 
-  RefreshCw, 
-  Filter, 
-  Crosshair, 
-  Flame,
-  X 
-} from "lucide-react";
+import { Search, ShieldAlert, Calendar, AlertTriangle, HelpCircle, Pause, Play, RefreshCw, Filter } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
-import DartSimulatorModal from "@/components/DartDeflectionModal";
-import ImpactSimulatorModal from "@/components/ImpactSimulatorModal";
 
 interface ControlPanelProps {
   asteroids: Asteroid[];
@@ -34,24 +19,6 @@ interface ControlPanelProps {
   loading: boolean;
   onRefetch: () => void;
 }
-
-// Fallback baseline target with type assertion ('as Asteroid') to satisfy TypeScript rules
-const DEFAULT_TARGET = {
-  id: "default-baseline",
-  name: "Baseline Target (150m)",
-  nasaUrl: "",
-  diameterMinMeters: 120,
-  diameterMaxMeters: 180,
-  velocityKms: 22.5,
-  velocityKmh: 81000,
-  missDistanceKm: 461280,
-  missDistanceLd: 1.2,
-  isHazardous: true,
-  closeApproachDate: new Date().toISOString().split("T")[0],
-  closeApproachTime: "12:00",
-  epochCloseApproach: Date.now(),
-  orbitingBody: "Earth",
-} as Asteroid;
 
 export default function ControlPanel({
   asteroids,
@@ -70,17 +37,6 @@ export default function ControlPanel({
 }: ControlPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsExpanded, setSettingsExpanded] = useState(false);
-
-  // Modal open states
-  const [isDartModalOpen, setIsDartModalOpen] = useState(false);
-  const [isImpactModalOpen, setIsImpactModalOpen] = useState(false);
-
-  // Safely find selected asteroid or fallback to default target object
-  const activeAsteroid = useMemo(() => {
-    if (!selectedId || selectedId === "moon") return DEFAULT_TARGET;
-    const found = asteroids.find((ast) => ast.id === selectedId);
-    return found || DEFAULT_TARGET;
-  }, [asteroids, selectedId]);
 
   const filteredAsteroids = useMemo(() => {
     return asteroids.filter((ast) => {
@@ -107,349 +63,259 @@ export default function ControlPanel({
   };
 
   return (
-    <>
-      <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-hidden shadow-none font-mono text-xs">
-        {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
-        <div className="border-b border-zinc-800 bg-zinc-950/40">
-          <button
-            id="toggle-settings-btn"
-            onClick={() => setSettingsExpanded(!settingsExpanded)}
-            className="w-full flex items-center justify-between p-4 hover:bg-zinc-900 transition-colors text-[10px] font-bold uppercase tracking-wider text-zinc-300"
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-              Observation & Filter Settings
-            </span>
-            <span className="text-zinc-500 font-mono text-[9px] hover:text-white">
-              {settingsExpanded ? "[-]" : "[+]"}
-            </span>
-          </button>
+    <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
+      {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
+      <div className="border-b border-zinc-800 bg-zinc-950/40">
+        <button
+          id="toggle-settings-btn"
+          onClick={() => setSettingsExpanded(!settingsExpanded)}
+          className="w-full flex items-center justify-between p-4 hover:bg-zinc-900 transition-colors text-[10px] font-bold uppercase tracking-wider text-zinc-300"
+        >
+          <span className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+            Observation & Filter Settings
+          </span>
+          <span className="text-zinc-500 font-mono text-[9px] hover:text-white">
+            {settingsExpanded ? "[-]" : "[+]"}
+          </span>
+        </button>
 
-          {settingsExpanded && (
-            <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4 max-h-[300px] overflow-y-auto">
-              {/* DATE SELECTOR + QUICK LEAPS */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] text-zinc-400 flex items-center gap-1.5 font-bold uppercase">
-                    Observation Date
-                  </span>
-                  {loading && <span className="text-[8px] text-zinc-500 animate-pulse font-mono">Syncing...</span>}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    id="date-picker"
-                    type="date"
-                    value={targetDate}
-                    onChange={(e) => onTargetDateChange(e.target.value)}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-none px-2.5 py-1.5 text-xs text-white focus:border-zinc-500 outline-none color-scheme-dark"
-                  />
-                  <button
-                    id="refetch-btn"
-                    onClick={onRefetch}
-                    disabled={loading}
-                    className="px-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 rounded-none transition-colors disabled:opacity-50"
-                    title="Reload Space Data"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-                  </button>
-                </div>
-
-                {/* Quick Jump Buttons */}
-                <div className="flex gap-1 pt-1">
-                  <button onClick={setToday} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
-                    Today
-                  </button>
-                  <button onClick={() => addDays(7)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
-                    +7 Days
-                  </button>
-                  <button onClick={() => addDays(30)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
-                    +30 Days
-                  </button>
-                </div>
-              </div>
-
-              {/* PRESET FILTER BUTTONS */}
-              <div className="space-y-1.5 border-t border-zinc-900 pt-3">
-                <span className="text-[9px] text-zinc-400 font-bold uppercase flex items-center gap-1">
-                  <Filter className="w-3 h-3 text-cyan-400" /> Filter Presets
+        {settingsExpanded && (
+          <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4">
+            {/* DATE SELECTOR + QUICK LEAPS */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] text-zinc-400 flex items-center gap-1.5 font-bold uppercase">
+                  Observation Date
                 </span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    onClick={() => {
-                      onFilterHazardousChange(true);
-                      onFilterSizeChange(0);
-                    }}
-                    className="p-1.5 bg-red-950/30 border border-red-900 text-red-400 text-[8px] uppercase text-left font-bold"
-                  >
-                    [!] Hazard Only
-                  </button>
-                  <button
-                    onClick={() => {
-                      onFilterHazardousChange(false);
-                      onFilterSizeChange(300);
-                    }}
-                    className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-[8px] uppercase text-left font-bold"
-                  >
-                    [+] Large (&gt;300m)
-                  </button>
-                </div>
+                {loading && <span className="text-[8px] text-zinc-500 animate-pulse font-mono">Syncing...</span>}
               </div>
-
-              {/* SIMULATION SPEED */}
-              <div className="space-y-1.5 border-t border-zinc-900 pt-3">
-                <div className="flex items-center justify-between text-[9px] text-zinc-400">
-                  <span className="font-bold uppercase">Time Warp Speed</span>
-                  <span className="text-white font-bold font-mono">
-                    {simulationSpeed === 0 ? "Paused" : `${simulationSpeed} days/sec`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    id="play-pause-btn"
-                    onClick={() => onSimulationSpeedChange(simulationSpeed === 0 ? 15 : 0)}
-                    className="p-2 bg-zinc-900 text-zinc-300 hover:text-white rounded-none border border-zinc-800 hover:border-zinc-700 transition-all"
-                  >
-                    {simulationSpeed === 0 ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-                  </button>
-                  <input
-                    id="speed-slider"
-                    type="range"
-                    min="0"
-                    max="150"
-                    step="5"
-                    value={simulationSpeed}
-                    onChange={(e) => onSimulationSpeedChange(parseInt(e.target.value, 10))}
-                    className="flex-1 h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
-                  />
-                </div>
-              </div>
-
-              {/* SEARCH & DETAILED FILTERS */}
-              <div className="space-y-3 pt-2 border-t border-zinc-900">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2 w-3 h-3 text-zinc-600" />
-                  <input
-                    id="asteroid-search-input"
-                    type="text"
-                    placeholder="Search by name or number..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-none pl-8 pr-3 py-1 text-xs text-white placeholder:text-zinc-600 focus:border-zinc-600 outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] text-zinc-300 uppercase flex items-center gap-1.5 font-bold">
-                    <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
-                    Show Hazardous Only
-                  </span>
-                  <button
-                    id="hazard-toggle-checkbox"
-                    role="checkbox"
-                    aria-checked={filterHazardousOnly}
-                    onClick={() => onFilterHazardousChange(!filterHazardousOnly)}
-                    className="font-mono text-[9px] text-zinc-400 hover:text-white uppercase px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded-none transition-all"
-                  >
-                    {filterHazardousOnly ? "[X] YES" : "[ ] NO"}
-                  </button>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[9px] text-zinc-400">
-                    <span className="uppercase">Min Size</span>
-                    <span className="text-white font-bold">{filterSizeMin} meters</span>
-                  </div>
-                  <input
-                    id="size-filter-slider"
-                    type="range"
-                    min="0"
-                    max="1000"
-                    step="20"
-                    value={filterSizeMin}
-                    onChange={(e) => onFilterSizeChange(parseInt(e.target.value, 10))}
-                    className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 2. PINNED CELESTIAL TARGET: THE MOON */}
-        <div className="border-b border-zinc-800 bg-zinc-950 p-2.5">
-          <div
-            id="moon-target-card"
-            onClick={() => onSelectAsteroid(selectedId === "moon" ? null : "moon")}
-            className={`p-2.5 cursor-pointer flex flex-col gap-1 transition-all border ${
-              selectedId === "moon"
-                ? "bg-cyan-950/60 border-cyan-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.25)]"
-                : "bg-black hover:bg-zinc-900 border-zinc-800 text-zinc-300"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-1.5">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-200 text-xs select-none">
-                  🌙
-                </div>
-                <div>
-                  <h5 className="text-white text-xs font-bold leading-none uppercase flex items-center gap-1.5">
-                    The Moon (Luna)
-                  </h5>
-                  <p className="text-[8px] text-zinc-500 uppercase mt-1">
-                    Earth&apos;s Natural Satellite • 384,400 KM
-                  </p>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono text-cyan-400 font-bold bg-zinc-900 px-1.5 py-0.5 border border-zinc-800">
-                1.0 LD
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. ASTEROID LIST FEED */}
-        <div className="flex-1 overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
-          {filteredAsteroids.length === 0 ? (
-            <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
-              <HelpCircle className="w-6 h-6 text-zinc-700 animate-pulse" />
-              <p className="text-zinc-500 text-[10px] uppercase">NO OBJECTS DETECTED</p>
-            </div>
-          ) : (
-            filteredAsteroids.map((ast) => {
-              const isSelected = ast.id === selectedId;
-              const avgSize = Math.round((ast.diameterMinMeters + ast.diameterMaxMeters) / 2);
-              return (
-                <div
-                  key={ast.id}
-                  id={`asteroid-card-${ast.id}`}
-                  onClick={() => onSelectAsteroid(isSelected ? null : ast.id)}
-                  className={`p-3 cursor-pointer flex flex-col gap-1 transition-all ${
-                    isSelected
-                      ? "bg-zinc-900 border-l-2 border-white"
-                      : "hover:bg-zinc-950 border-l-2 border-transparent"
-                  }`}
+              <div className="flex gap-2">
+                <input
+                  id="date-picker"
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => onTargetDateChange(e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-none px-2.5 py-1.5 text-xs text-white focus:border-zinc-500 outline-none color-scheme-dark"
+                />
+                <button
+                  id="refetch-btn"
+                  onClick={onRefetch}
+                  disabled={loading}
+                  className="px-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 rounded-none transition-colors disabled:opacity-50"
+                  title="Reload Space Data"
                 >
-                  <div className="flex items-start justify-between gap-1.5">
-                    <h5 className="text-white text-xs font-bold truncate leading-none">
-                      {ast.name}
-                    </h5>
-                    {ast.isHazardous && (
-                      <span className="flex-shrink-0 flex items-center gap-1 bg-red-950 text-red-500 text-[8px] px-1.5 py-0.5 border border-red-900 font-bold uppercase">
-                        <AlertTriangle className="w-2 h-2" />
-                        HAZARD
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 mt-2 text-[9px] text-zinc-500">
-                    <div>
-                      <span className="block text-zinc-600 uppercase text-[8px]">Size</span>
-                      <span className="font-bold text-zinc-300">{avgSize}m</span>
-                    </div>
-                    <div>
-                      <span className="block text-zinc-600 uppercase text-[8px]">Velocity</span>
-                      <span className="font-bold text-zinc-300">{ast.velocityKms.toFixed(1)}k/s</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-zinc-600 uppercase text-[8px]">Miss</span>
-                      <span className={`font-bold ${ast.missDistanceLd < 1 ? "text-amber-500" : "text-zinc-300"}`}>
-                        {ast.missDistanceLd.toFixed(1)} LD
-                      </span>
-                    </div>
-                  </div>
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+
+              {/* Quick Jump Buttons */}
+              <div className="flex gap-1 pt-1">
+                <button onClick={setToday} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  Today
+                </button>
+                <button onClick={() => addDays(7)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  +7 Days
+                </button>
+                <button onClick={() => addDays(30)} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
+                  +30 Days
+                </button>
+              </div>
+            </div>
+
+            {/* PRESET FILTER BUTTONS */}
+            <div className="space-y-1.5 border-t border-zinc-900 pt-3">
+              <span className="text-[9px] text-zinc-400 font-bold uppercase flex items-center gap-1">
+                <Filter className="w-3 h-3 text-cyan-400" /> Filter Presets
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => {
+                    onFilterHazardousChange(true);
+                    onFilterSizeChange(0);
+                  }}
+                  className="p-1.5 bg-red-950/30 border border-red-900 text-red-400 text-[8px] uppercase text-left font-bold"
+                >
+                  [!] Hazard Only
+                </button>
+                <button
+                  onClick={() => {
+                    onFilterHazardousChange(false);
+                    onFilterSizeChange(300);
+                  }}
+                  className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-[8px] uppercase text-left font-bold"
+                >
+                  [+] Large (&gt;300m)
+                </button>
+              </div>
+            </div>
+
+            {/* SIMULATION SPEED */}
+            <div className="space-y-1.5 border-t border-zinc-900 pt-3">
+              <div className="flex items-center justify-between text-[9px] text-zinc-400">
+                <span className="font-bold uppercase">Time Warp Speed</span>
+                <span className="text-white font-bold font-mono">
+                  {simulationSpeed === 0 ? "Paused" : `${simulationSpeed} days/sec`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  id="play-pause-btn"
+                  onClick={() => onSimulationSpeedChange(simulationSpeed === 0 ? 15 : 0)}
+                  className="p-2 bg-zinc-900 text-zinc-300 hover:text-white rounded-none border border-zinc-800 hover:border-zinc-700 transition-all"
+                >
+                  {simulationSpeed === 0 ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                </button>
+                <input
+                  id="speed-slider"
+                  type="range"
+                  min="0"
+                  max="150"
+                  step="5"
+                  value={simulationSpeed}
+                  onChange={(e) => onSimulationSpeedChange(parseInt(e.target.value, 10))}
+                  className="flex-1 h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
+                />
+              </div>
+            </div>
+
+            {/* SEARCH & DETAILED FILTERS */}
+            <div className="space-y-3 pt-2 border-t border-zinc-900">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 w-3 h-3 text-zinc-600" />
+                <input
+                  id="asteroid-search-input"
+                  type="text"
+                  placeholder="Search by name or number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-none pl-8 pr-3 py-1 text-xs text-white placeholder:text-zinc-600 focus:border-zinc-600 outline-none transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-zinc-300 uppercase flex items-center gap-1.5 font-bold">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
+                  Show Hazardous Only
+                </span>
+                <button
+                  id="hazard-toggle-checkbox"
+                  role="checkbox"
+                  aria-checked={filterHazardousOnly}
+                  onClick={() => onFilterHazardousChange(!filterHazardousOnly)}
+                  className="font-mono text-[9px] text-zinc-400 hover:text-white uppercase px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded-none transition-all"
+                >
+                  {filterHazardousOnly ? "[X] YES" : "[ ] NO"}
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[9px] text-zinc-400">
+                  <span className="uppercase">Min Size</span>
+                  <span className="text-white font-bold">{filterSizeMin} meters</span>
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 4. BOTTOM FOOTER: TACTICAL SIMULATORS BAR */}
-        <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[9px] text-zinc-400 uppercase tracking-wider font-bold">
-            <span>Simulators</span>
-            <span className="text-cyan-400 truncate max-w-[150px]">
-              {selectedId && selectedId !== "moon" ? activeAsteroid.name : "Target: Default Baseline"}
-            </span>
+                <input
+                  id="size-filter-slider"
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="20"
+                  value={filterSizeMin}
+                  onChange={(e) => onFilterSizeChange(parseInt(e.target.value, 10))}
+                  className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white"
+                />
+              </div>
+            </div>
           </div>
+        )}
+      </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setIsDartModalOpen(true)}
-              className="group flex items-center justify-center gap-1.5 p-2 bg-zinc-900 hover:bg-cyan-950/50 border border-zinc-800 hover:border-cyan-500 text-cyan-400 transition-all"
-            >
-              <Crosshair className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                DART Impact
-              </span>
-            </button>
-
-            <button
-              onClick={() => setIsImpactModalOpen(true)}
-              className="group flex items-center justify-center gap-1.5 p-2 bg-zinc-900 hover:bg-red-950/50 border border-zinc-800 hover:border-red-500 text-red-400 transition-all"
-            >
-              <Flame className="w-3.5 h-3.5 text-red-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Impact Effects
-              </span>
-            </button>
+      {/* 2. PINNED CELESTIAL TARGET: THE MOON */}
+      <div className="border-b border-zinc-800 bg-zinc-950 p-2.5">
+        <div
+          id="moon-target-card"
+          onClick={() => onSelectAsteroid(selectedId === "moon" ? null : "moon")}
+          className={`p-2.5 cursor-pointer flex flex-col gap-1 transition-all border ${
+            selectedId === "moon"
+              ? "bg-cyan-950/60 border-cyan-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.25)]"
+              : "bg-black hover:bg-zinc-900 border-zinc-800 text-zinc-300"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-200 text-xs select-none">
+                🌙
+              </div>
+              <div>
+                <h5 className="text-white text-xs font-bold leading-none uppercase flex items-center gap-1.5">
+                  The Moon (Luna)
+                </h5>
+                <p className="text-[8px] text-zinc-500 uppercase mt-1">
+                  Earth&apos;s Natural Satellite • 384,400 KM
+                </p>
+              </div>
+            </div>
+            <span className="text-[9px] font-mono text-cyan-400 font-bold bg-zinc-900 px-1.5 py-0.5 border border-zinc-800">
+              1.0 LD
+            </span>
           </div>
         </div>
       </div>
 
-      {/* DART SIMULATOR MODAL OVERLAY */}
-      {isDartModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl max-h-[90vh] bg-black border border-zinc-800 shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-3 bg-zinc-950 border-b border-zinc-800 font-mono text-xs">
-              <span className="text-cyan-400 font-bold uppercase flex items-center gap-2">
-                <Crosshair className="w-4 h-4" /> DART Kinetic Impactor Simulator
-              </span>
-              <button
-                onClick={() => setIsDartModalOpen(false)}
-                className="text-zinc-500 hover:text-white p-1 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <DartSimulatorModal
-                {...({
-                  asteroid: activeAsteroid,
-                  selectedAsteroid: activeAsteroid,
-                  onClose: () => setIsDartModalOpen(false)
-                } as any)}
-              />
-            </div>
+      {/* 3. ASTEROID LIST FEED */}
+      <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
+        {filteredAsteroids.length === 0 ? (
+          <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
+            <HelpCircle className="w-6 h-6 text-zinc-700 animate-pulse" />
+            <p className="text-zinc-500 text-[10px] uppercase">NO OBJECTS DETECTED</p>
           </div>
-        </div>
-      )}
-
-      {/* IMPACT SIMULATOR MODAL OVERLAY */}
-      {isImpactModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl max-h-[90vh] bg-black border border-zinc-800 shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-3 bg-zinc-950 border-b border-zinc-800 font-mono text-xs">
-              <span className="text-red-400 font-bold uppercase flex items-center gap-2">
-                <Flame className="w-4 h-4" /> Planetary Impact Calculator
-              </span>
-              <button
-                onClick={() => setIsImpactModalOpen(false)}
-                className="text-zinc-500 hover:text-white p-1 transition-colors"
+        ) : (
+          filteredAsteroids.map((ast) => {
+            const isSelected = ast.id === selectedId;
+            const avgSize = Math.round((ast.diameterMinMeters + ast.diameterMaxMeters) / 2);
+            return (
+              <div
+                key={ast.id}
+                id={`asteroid-card-${ast.id}`}
+                onClick={() => onSelectAsteroid(isSelected ? null : ast.id)}
+                className={`p-3 cursor-pointer flex flex-col gap-1 transition-all ${
+                  isSelected
+                    ? "bg-zinc-900 border-l-2 border-white"
+                    : "hover:bg-zinc-950 border-l-2 border-transparent"
+                }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <ImpactSimulatorModal
-                {...({
-                  asteroid: activeAsteroid,
-                  selectedAsteroid: activeAsteroid,
-                  onClose: () => setIsImpactModalOpen(false)
-                } as any)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+                <div className="flex items-start justify-between gap-1.5">
+                  <h5 className="text-white text-xs font-bold truncate leading-none">
+                    {ast.name}
+                  </h5>
+                  {ast.isHazardous && (
+                    <span className="flex-shrink-0 flex items-center gap-1 bg-red-950 text-red-500 text-[8px] px-1.5 py-0.5 border border-red-900 font-bold uppercase">
+                      <AlertTriangle className="w-2 h-2" />
+                      HAZARD
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-1 mt-2 text-[9px] text-zinc-500">
+                  <div>
+                    <span className="block text-zinc-600 uppercase text-[8px]">Size</span>
+                    <span className="font-bold text-zinc-300">{avgSize}m</span>
+                  </div>
+                  <div>
+                    <span className="block text-zinc-600 uppercase text-[8px]">Velocity</span>
+                    <span className="font-bold text-zinc-300">{ast.velocityKms.toFixed(1)}k/s</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-zinc-600 uppercase text-[8px]">Miss</span>
+                    <span className={`font-bold ${ast.missDistanceLd < 1 ? "text-amber-500" : "text-zinc-300"}`}>
+                      {ast.missDistanceLd.toFixed(1)} LD
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }

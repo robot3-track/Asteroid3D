@@ -5,18 +5,21 @@ export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Orbit, 
-  ShieldAlert, 
   Activity, 
   AlertOctagon, 
   Database,
   Table,
   Target,
-  Globe
+  Globe,
+  Bomb,
+  Rocket
 } from "lucide-react";
 import AsteroidSimulator from "@/components/AsteroidSimulator";
 import ControlPanel from "@/components/ControlPanel";
 import AsteroidDetails from "@/components/AsteroidDetails";
 import MoonDetails from "@/components/MoonDetails";
+import ImpactSimulatorModal from "@/components/ImpactSimulatorModal";
+import DartDeflectionModal from "@/components/DartDeflectionModal";
 import { Asteroid } from "@/lib/nasa";
 
 export default function Home() {
@@ -32,6 +35,10 @@ export default function Home() {
   // Menu tab state to see individual views one at a time to simplify UI clutter
   const [viewTab, setViewTab] = useState<"simulator" | "feed">("simulator");
   
+  // Modal states for Sandbox Features
+  const [activeImpactModalAsteroid, setActiveImpactModalAsteroid] = useState<Asteroid | null>(null);
+  const [activeDartModalAsteroid, setActiveDartModalAsteroid] = useState<Asteroid | null>(null);
+
   const [targetDate, setTargetDate] = useState<string>(() => {
     return new Date().toISOString().split("T")[0];
   });
@@ -312,7 +319,7 @@ export default function Home() {
                       <th className="py-2.5 px-2">Miss Distance (Lunar)</th>
                       <th className="py-2.5 px-2">Miss Distance (KM)</th>
                       <th className="py-2.5 px-2">Hazard Status</th>
-                      <th className="py-2.5 px-2 text-right">Orbit Parameters</th>
+                      <th className="py-2.5 px-2 text-right">Defense Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900">
@@ -351,12 +358,23 @@ export default function Home() {
                               <span className="text-zinc-600">SECURE</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-2 text-right text-zinc-500">
-                            {ast.orbitalParams ? (
-                              `a=${ast.orbitalParams.semiMajorAxisAu.toFixed(2)} e=${ast.orbitalParams.eccentricity.toFixed(2)}`
-                            ) : (
-                              "N/A"
-                            )}
+                          <td className="py-2.5 px-2 text-right">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setActiveImpactModalAsteroid(ast)}
+                                className="p-1.5 bg-red-950/40 hover:bg-red-900/60 border border-red-800/80 text-red-400 text-[8px] font-bold uppercase transition-colors"
+                                title="Simulate Earth Impact"
+                              >
+                                <Bomb className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => setActiveDartModalAsteroid(ast)}
+                                className="p-1.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/80 text-cyan-400 text-[8px] font-bold uppercase transition-colors"
+                                title="Launch DART Deflection Mission"
+                              >
+                                <Rocket className="w-3 h-3" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -404,6 +422,21 @@ export default function Home() {
           <span>SYSTEM CLOCK: UTC</span>
         </div>
       </footer>
+
+      {/* SANDBOX MODAL OVERLAYS */}
+      {activeImpactModalAsteroid && (
+        <ImpactSimulatorModal
+          asteroid={activeImpactModalAsteroid}
+          onClose={() => setActiveImpactModalAsteroid(null)}
+        />
+      )}
+
+      {activeDartModalAsteroid && (
+        <DartDeflectionModal
+          asteroid={activeDartModalAsteroid}
+          onClose={() => setActiveDartModalAsteroid(null)}
+        />
+      )}
 
     </main>
   );

@@ -49,7 +49,6 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch telemetry data with AbortController for clean lifecycle handling
   const fetchAsteroidsData = useCallback(async (dateStr: string, signal?: AbortSignal) => {
     if (!dateStr) return;
 
@@ -100,8 +99,6 @@ export default function Home() {
 
   return (
     <main className="h-screen w-full relative flex flex-col font-mono transition-colors duration-300 overflow-hidden bg-black text-zinc-300">
-      
-      {/* HEADER & VIEW SELECTOR */}
       <header className="flex-none relative z-20 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 border-b border-zinc-800 transition-colors bg-zinc-950">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 border border-cyan-500/40 bg-zinc-950 text-cyan-400 rounded-none shadow-[0_0_12px_rgba(34,211,238,0.2)]">
@@ -118,7 +115,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* MODE TOGGLES */}
         <div className="flex items-center justify-center">
           <div className="flex border border-zinc-800 bg-black p-0.5 rounded-none">
             <button
@@ -149,7 +145,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ERROR STATUS BANNER */}
       {error && (
         <div className="relative z-20 bg-red-950 border-b border-red-900 text-red-500 p-2.5 text-[10px] flex items-center gap-2 justify-center">
           <AlertOctagon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -164,10 +159,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* WORKSPACE AREA */}
       <div className="flex-1 w-full relative overflow-hidden flex flex-col min-h-0">
-        
-        {/* VIEW TAB A: 3D SIMULATOR */}
         {viewTab === "simulator" && (
           <div className="relative w-full h-full overflow-hidden">
             <div className="absolute inset-0 z-0">
@@ -182,7 +174,6 @@ export default function Home() {
               />
             </div>
 
-            {/* Sidebar Toggles */}
             <div className="absolute top-3 left-3 z-40 flex gap-2 pointer-events-auto">
               <button
                 id="toggle-left-sidebar-btn"
@@ -203,7 +194,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Left Drawer */}
             <div className={`absolute top-12 left-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[320px] pointer-events-none transition-all duration-300 ${
               leftSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -226,7 +216,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Drawer */}
             <div className={`absolute top-12 right-3 bottom-3 z-30 w-[calc(100%-1.5rem)] sm:w-[380px] pointer-events-none transition-all duration-300 ${
               rightSidebarOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+1.5rem)] opacity-0"
             }`}>
@@ -261,7 +250,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* VIEW TAB B: TELEMETRY GRID */}
         {viewTab === "feed" && (
           <div className="w-full h-full p-4 overflow-y-auto flex flex-col lg:flex-row gap-4 items-start">
             <div className="flex-1 w-full bg-black border border-zinc-800 p-4">
@@ -359,7 +347,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sidebar Right Target Details */}
             <div className="w-full lg:w-[380px] lg:sticky lg:top-0 flex-shrink-0 flex flex-col">
               {selectedAsteroid ? (
                 <AsteroidDetails
@@ -384,7 +371,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* FOOTER BAR */}
       <footer className="flex-none relative z-20 py-2.5 px-4 border-t border-zinc-800 font-mono text-[9px] flex flex-col md:flex-row items-center justify-between gap-2 transition-colors duration-300 bg-zinc-950 text-zinc-500">
         <div className="flex items-center gap-2">
           <Database className="w-3.5 h-3.5 text-zinc-400" />
@@ -396,7 +382,6 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* MODAL OVERLAYS */}
       {activeImpactModalAsteroid && (
         <ImpactSimulatorModal
           asteroid={activeImpactModalAsteroid}

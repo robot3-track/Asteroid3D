@@ -29,17 +29,10 @@ This application acts as a space observation console that lets you visualize ast
 
 ## Core Features
 
-- **Geocentric & Heliocentric Views**: Switch between a Geocentric orbital grid centered on Earth (tracking the Moon and passing asteroids) and a Heliocentric view centered on the Sun.
 - **Real-Time Interactive 3D Canvas**: Built with high-performance, raw Three.js rendering with orbital camera controls, dynamic glow shaders, and camera focus lock.
 - **Visual Size Comparison**: Proportional graphics comparing any selected asteroid's diameter with recognizable structures (a Human, Boeing 747, Great Pyramid of Giza, Eiffel Tower, or Burj Khalifa).
 - **Time Dilation Controls**: Pause or speed up simulation time (up to 150x speed) to observe intersection vectors and orbital progression.
 - **Filtered Target Controls**: Filter asteroids by size threshold or isolate potentially hazardous space objects in real-time.
-
-## Procedural Asset Engine
-
-To maximize rendering performance and eliminate texture download overhead:
-1. **Procedural Holographic Earth**: Generates dynamic cloud layers, continental landmasses, and atmospheric haze using in-memory HTML5 Canvas textures with 0ms network loading latency.
-2. **Procedural Asteroid Meshes**: Generates organic, non-uniform irregular polyhedral structures using vertex noise perturbation algorithms.
 
 ## Try the official deployment now!
 

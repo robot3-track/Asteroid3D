@@ -106,11 +106,11 @@ export default function Home() {
           </div>
           <div>
             <h1 className="text-xs font-black tracking-widest leading-none text-white">
-              LIVE ASTEROID 3D SIMULATOR
+              LIVE 3D ASTEROIDS SIM
             </h1>
             <p className="text-[9px] text-zinc-500 mt-0.5 uppercase tracking-wider flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-cyan-400" />
-              NASA Near-Earth Object Observation Stream
+              NASA Near-Earth Object Observation and Projection Stream!
             </p>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function Home() {
                       <Target className="w-5 h-5" />
                     </div>
                     <h4 className="text-white text-[10px] font-bold uppercase tracking-wider">
-                      SPACE SEARCH INACTIVE
+                      SPACE SEARCH EMPTY - TAP ON SOMETHING :)
                     </h4>
                     <p className="text-zinc-500 text-[9px] mt-1.5 leading-relaxed uppercase">
                       Select a space rock or the Moon from the list to synchronize details, orbital path, and/or size comparisons!

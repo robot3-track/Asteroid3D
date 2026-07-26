@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
 import { X, Globe, Ruler, Gauge, Compass, Waves, Layers, Info } from "lucide-react";
 
@@ -9,13 +9,12 @@ interface MoonDetailsProps {
   onClose: () => void;
 }
 
-// NASA GRAIL / Apollo Seismic Interior Stratigraphy Data
 const LUNAR_LAYERS = [
   {
     name: "Regolith",
     depth: "0 - 12 m",
     radiusKm: "1,737.4 km",
-    comp: "Impact breccias, glass beads, fine lunar dust",
+    comp: "Impact breccias, glass beads, fine dust",
     temp: "-130°C to +120°C",
     color: "border-zinc-500 bg-zinc-800/40 text-zinc-300",
     visualScale: 1.0,
@@ -32,20 +31,20 @@ const LUNAR_LAYERS = [
     threeColor: 0xb48a56
   },
   {
-    name: "Upper Mantle (Rigid)",
+    name: "Upper Mantle",
     depth: "43 - 500 km",
     radiusKm: "1,237 km",
-    comp: "Pyroxene, magnesium-rich olivine",
+    comp: "Pyroxene, Mg-rich olivine",
     temp: "200°C - 800°C",
     color: "border-emerald-700/50 bg-emerald-950/20 text-emerald-200",
     visualScale: 0.70,
     threeColor: 0x1e6b4d
   },
   {
-    name: "Lower Mantle (Partial Melt)",
+    name: "Lower Mantle",
     depth: "500 - 1,400 km",
     radiusKm: "337 km",
-    comp: "Partial melt zone, ilmenite-rich cumulates",
+    comp: "Partial melt, ilmenite cumulates",
     temp: "1,000°C - 1,300°C",
     color: "border-orange-700/50 bg-orange-950/20 text-orange-200",
     visualScale: 0.48,
@@ -55,7 +54,7 @@ const LUNAR_LAYERS = [
     name: "Fluid Outer Core",
     depth: "1,400 - 1,500 km",
     radiusKm: "240 km",
-    comp: "Liquid iron-nickel alloy (~0.2% lunar mass)",
+    comp: "Liquid Fe-Ni alloy",
     temp: "~1,400°C",
     color: "border-red-700/50 bg-red-950/30 text-red-200",
     visualScale: 0.28,
@@ -65,7 +64,7 @@ const LUNAR_LAYERS = [
     name: "Solid Inner Core",
     depth: "1,500 - 1,737 km",
     radiusKm: "150 km",
-    comp: "Crystallized metallic iron core",
+    comp: "Crystallized metallic iron",
     temp: "~1,500°C",
     color: "border-yellow-500 bg-yellow-500/20 text-yellow-300",
     visualScale: 0.14,
@@ -80,16 +79,14 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const geoMountRef = useRef<HTMLDivElement>(null);
 
-  // Precise Keplerian Lunar Ephemeris
-  const luna = React.useMemo(() => {
+  const luna = useMemo(() => {
     const target = targetDate ? new Date(targetDate) : new Date();
     if (isNaN(target.getTime())) return null;
 
     const timeMs = target.getTime();
     const julianDate = timeMs / 86400000 + 2440587.5;
     const T = (julianDate - 2451545.0) / 36525;
-
-    const degToRad = Math.PI / 180;
+    const rad = Math.PI / 180;
     
     const D = (297.8501921 + 445267.1114034 * T) % 360;
     const M = (357.5291092 + 35999.0502909 * T) % 360;
@@ -102,7 +99,7 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     if (rawAge < 0) rawAge += synodicCycle;
     const progress = rawAge / synodicCycle;
 
-    const phaseAngleRad = (180 - D - 6.289 * Math.sin(Mprime * degToRad)) * degToRad;
+    const phaseAngleRad = (180 - D - 6.289 * Math.sin(Mprime * rad)) * rad;
     const illumination = Math.max(0, Math.min(100, Math.round(((1 + Math.cos(phaseAngleRad)) / 2) * 100)));
 
     let phaseName = "New Moon";
@@ -114,9 +111,9 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     else if (rawAge >= 20.302 && rawAge < 23.993) phaseName = "Third Quarter";
     else if (rawAge >= 23.993 && rawAge < 27.684) phaseName = "Waning Crescent";
 
-    const MpR = Mprime * degToRad;
-    const DR = D * degToRad;
-    const MR = M * degToRad;
+    const MpR = Mprime * rad;
+    const DR = D * rad;
+    const MR = M * rad;
 
     const distanceKm = Math.round(
       385000.55 - 
@@ -132,9 +129,6 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     const velocityKms = parseFloat((Math.sqrt(gmEarth * ((2 / distanceKm) - (1 / 384400)))).toFixed(3));
     const tideForceCoeff = parseFloat((Math.pow(384400 / distanceKm, 3)).toFixed(2));
 
-    const isSupermoon = distanceKm < 360000 && illumination > 90;
-    const isMicromoon = distanceKm > 400000 && illumination > 90;
-
     return {
       age: parseFloat(rawAge.toFixed(2)),
       phaseName,
@@ -143,13 +137,10 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
       distanceLd,
       velocityKms,
       tideForceCoeff,
-      isSupermoon,
-      isMicromoon,
       progress
     };
   }, [targetDate]);
 
-  // WEBGL 3D SURFACE SPHERE RENDERER (Three.js)
   useEffect(() => {
     if (activeTab !== "telemetry" || !mountRef.current || !luna) return;
 
@@ -166,18 +157,14 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    // Directional Solar Lighting corresponding to phase angle
     const sunLight = new THREE.DirectionalLight(0xfffdf0, 2.2);
     const sunAngle = (luna.progress - 0.25) * Math.PI * 2;
     sunLight.position.set(Math.cos(sunAngle) * 10, 0, Math.sin(sunAngle) * 10);
     scene.add(sunLight);
 
-    const ambientLight = new THREE.AmbientLight(0x111122, 0.15);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0x111122, 0.15));
 
-    // NASA LROC Color Map & Bump Map Textures
-    const textureLoader = new THREE.TextureLoader();
-    const colorTexture = textureLoader.load(
+    const colorTexture = new THREE.TextureLoader().load(
       "https://s3-us-west-2.amazonaws.com/s.cdpn.io/17271/lroc_color_poles_1k.jpg"
     );
 
@@ -191,16 +178,16 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     const moonMesh = new THREE.Mesh(geometry, material);
     scene.add(moonMesh);
 
-    let animationFrameId: number;
+    let frameId: number;
     const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
       moonMesh.rotation.y += 0.002;
       renderer.render(scene, camera);
     };
     animate();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(frameId);
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
@@ -210,7 +197,6 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     };
   }, [activeTab, luna]);
 
-  // WEBGL 3D CUTAWAY INTERIOR GEOLOGY RENDERER
   useEffect(() => {
     if (activeTab !== "geology" || !geoMountRef.current) return;
 
@@ -231,21 +217,17 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
     dirLight.position.set(5, 5, 5);
     scene.add(dirLight);
-
-    const ambLight = new THREE.AmbientLight(0x404040, 1.2);
-    scene.add(ambLight);
+    scene.add(new THREE.AmbientLight(0x404040, 1.2));
 
     const group = new THREE.Group();
 
-    // Create 3D Sliced Concentric Spheres
     LUNAR_LAYERS.forEach((layer) => {
-      const radius = layer.visualScale * 0.95;
       const geom = new THREE.SphereGeometry(
-        radius,
+        layer.visualScale * 0.95,
         32,
         32,
         0,
-        Math.PI * 1.5, // 270 degree cutaway slice
+        Math.PI * 1.5,
         0,
         Math.PI
       );
@@ -256,19 +238,18 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
         roughness: 0.6
       });
 
-      const mesh = new THREE.Mesh(geom, mat);
-      group.add(mesh);
+      group.add(new THREE.Mesh(geom, mat));
     });
 
     scene.add(group);
 
     let frameId: number;
-    const animateGeo = () => {
-      frameId = requestAnimationFrame(animateGeo);
+    const animate = () => {
+      frameId = requestAnimationFrame(animate);
       group.rotation.y += 0.004;
       renderer.render(scene, camera);
     };
-    animateGeo();
+    animate();
 
     return () => {
       cancelAnimationFrame(frameId);
@@ -289,17 +270,16 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
 
   return (
     <div className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-hidden font-mono text-xs select-none">
-      {/* HEADER SECTION */}
       <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-yellow-500 rounded-full animate-pulse" />
             <span className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
-              3D PHYSICAL MOON MODEL
+              MOON TELEMETRY
             </span>
           </div>
           <h2 className="text-white text-base font-black tracking-wide mt-1">
-            LUNA (EARTH&apos;S MOON)
+            LUNA
           </h2>
         </div>
         <button
@@ -310,7 +290,6 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
         </button>
       </div>
 
-      {/* VIEW NAVIGATION */}
       <div className="flex border-b border-zinc-800 bg-zinc-950/80 p-1">
         <button
           onClick={() => setActiveTab("telemetry")}
@@ -320,7 +299,7 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
               : "text-zinc-500 hover:text-zinc-300"
           }`}
         >
-          <Globe className="w-3 h-3 text-cyan-400" /> 3D Surface Model
+          <Globe className="w-3 h-3 text-cyan-400" /> Surface Model
         </button>
         <button
           onClick={() => setActiveTab("geology")}
@@ -330,15 +309,13 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
               : "text-zinc-500 hover:text-zinc-300"
           }`}
         >
-          <Layers className="w-3 h-3 text-amber-400" /> 3D Layer Cutaway
+          <Layers className="w-3 h-3 text-amber-400" /> Layer Cutaway
         </button>
       </div>
 
-      {/* BODY PANEL */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
         {activeTab === "telemetry" ? (
           <>
-            {/* REAL WEBGL 3D SURFACE CANVAS CONTAINER */}
             <div className="p-2 bg-zinc-950 border border-zinc-900 text-center flex flex-col justify-center items-center">
               <div ref={mountRef} className="w-full h-48 cursor-grab active:cursor-grabbing" />
               <div className="mt-2">
@@ -351,10 +328,9 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
               </div>
             </div>
 
-            {/* DYNAMIC TELEMETRY GRID */}
             <div className="space-y-2">
               <h4 className="text-zinc-500 text-[9px] font-bold tracking-wider uppercase">
-                KEPLERIAN EPHEMERIS ({targetDate})
+                EPHEMERIS ({targetDate})
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 bg-zinc-950 border border-zinc-900 flex flex-col gap-1">
@@ -390,32 +366,30 @@ export default function MoonDetails({ targetDate, onClose }: MoonDetailsProps) {
                     <Waves className="w-3 h-3 text-blue-500" /> Tidal Effect
                   </span>
                   <span className="text-white font-bold text-xs">{luna.tideForceCoeff}x</span>
-                  <span className="text-zinc-400 text-[9px]">Gravitational Pull</span>
+                  <span className="text-zinc-400 text-[9px]">Relative Pull</span>
                 </div>
               </div>
             </div>
           </>
         ) : (
-          /* REAL WEBGL 3D INTERIOR CUTAWAY MODEL */
           <div className="space-y-3">
             <div className="p-2.5 bg-zinc-950 border border-zinc-900 text-zinc-400 text-[9px] flex items-start gap-2">
               <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="leading-relaxed uppercase">
-                Rendered with 3D WebGL concentric cutaway geometry derived from NASA GRAIL gravity data and Apollo seismic sensors.
+                Data based on NASA GRAIL and Apollo seismic experiment models.
               </p>
             </div>
 
             <div className="p-2 bg-zinc-950 border border-zinc-900 flex flex-col items-center justify-center">
               <span className="text-[9px] text-zinc-500 uppercase mb-1 font-bold tracking-wider">
-                Volumetric 3D Stratigraphy Cutaway
+                Internal Structure Cutaway
               </span>
               <div ref={geoMountRef} className="w-full h-52" />
             </div>
 
-            {/* SEISMIC STRATIGRAPHY */}
             <div className="space-y-2">
               <h4 className="text-zinc-500 text-[9px] font-bold tracking-wider uppercase">
-                STRATIGRAPHIC BOUNDARIES
+                STRATIGRAPHY
               </h4>
               <div className="space-y-1.5">
                 {LUNAR_LAYERS.map((layer, index) => (

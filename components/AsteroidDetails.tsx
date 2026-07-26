@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ExternalLink, ShieldCheck, AlertTriangle, Ruler, Navigation, Calendar, Gauge, Orbit, Zap } from "lucide-react";
+import { X, ShieldCheck, AlertTriangle, Ruler, Navigation, Gauge, Orbit, Zap } from "lucide-react";
 import { Asteroid } from "@/lib/nasa";
 
 interface AsteroidDetailsProps {
@@ -64,6 +64,14 @@ const CELESTIAL_REGISTRY: Record<string, CelestialBodyInfo> = {
   }
 };
 
+const REFERENCE_STRUCTURES = [
+  { name: "Average Human", size: 1.8, label: "1.8 meters" },
+  { name: "Boeing 747 Jet", size: 64, label: "64 meters" },
+  { name: "Great Pyramid of Giza", size: 139, label: "139 meters" },
+  { name: "Eiffel Tower", size: 330, label: "330 meters" },
+  { name: "Burj Khalifa Tower", size: 828, label: "828 meters" }
+];
+
 export default function AsteroidDetails({ 
   asteroid, 
   selectedId,
@@ -71,9 +79,6 @@ export default function AsteroidDetails({
   showPredictedRoute = false,
   onTogglePredictedRoute
 }: AsteroidDetailsProps) {
-  const [showAdvancedTelemetry, setShowAdvancedTelemetry] = useState(false);
-
-  // If clicked a planet
   if (!asteroid) {
     const celestialKey = selectedId || "";
     const celestial = CELESTIAL_REGISTRY[celestialKey];
@@ -149,9 +154,6 @@ export default function AsteroidDetails({
   }
 
   const avgSize = Math.round((asteroid.diameterMinMeters + asteroid.diameterMaxMeters) / 2);
-  
-  // Calculate Kinetic Energy Estimation (0.5 * m * v^2)
-  // Density assumption for stone asteroid ~2500 kg/m^3
   const radius = avgSize / 2;
   const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
   const estimatedMassKg = volume * 2500;
@@ -159,26 +161,16 @@ export default function AsteroidDetails({
   const kineticEnergyJoules = 0.5 * estimatedMassKg * Math.pow(velocityMs, 2);
   const tntMegatons = (kineticEnergyJoules / 4.184e15).toFixed(2);
 
-  const referenceStructures = [
-    { name: "Average Human", size: 1.8, label: "1.8 meters" },
-    { name: "Boeing 747 Jet", size: 64, label: "64 meters" },
-    { name: "Great Pyramid of Giza", size: 139, label: "139 meters" },
-    { name: "Eiffel Tower", size: 330, label: "330 meters" },
-    { name: "Burj Khalifa Tower", size: 828, label: "828 meters" }
-  ];
-
-  const combinedObjects = [...referenceStructures]
+  const combinedObjects = [...REFERENCE_STRUCTURES]
     .map((struct) => ({ ...struct, isAsteroid: false }))
-    .concat([{ name: `Asteroid ${asteroid.name}`, size: avgSize, label: `${avgSize} meters`, isAsteroid: true }]);
+    .concat([{ name: `Asteroid ${asteroid.name}`, size: avgSize, label: `${avgSize} meters`, isAsteroid: true }])
+    .sort((a, b) => a.size - b.size);
 
-  combinedObjects.sort((a, b) => a.size - b.size);
   const maxSize = Math.max(...combinedObjects.map((o) => o.size));
-  const bulletSpeedKms = 1.0;
-  const speedRatio = asteroid.velocityKms / bulletSpeedKms;
+  const speedRatio = asteroid.velocityKms / 1.0;
 
   return (
     <div id="asteroid-details-overlay" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-hidden font-mono text-xs">
-      {/* HEADER SECTION */}
       <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -201,7 +193,6 @@ export default function AsteroidDetails({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
-        {/* HAZARD SUMMARY BANNER */}
         <div className={`p-4 rounded-none border ${
           asteroid.isHazardous 
             ? "bg-red-950/20 border-red-900 text-red-400"
@@ -228,7 +219,6 @@ export default function AsteroidDetails({
           </div>
         </div>
 
-        {/* KINETIC IMPACT ESTIMATOR */}
         <div className="bg-zinc-950 border border-zinc-800 p-3 space-y-2">
           <div className="flex items-center gap-1.5 text-[9px] text-amber-500 font-bold uppercase">
             <Zap className="w-3.5 h-3.5" /> Theoretical Kinetic Yield
@@ -245,7 +235,6 @@ export default function AsteroidDetails({
           </div>
         </div>
 
-        {/* PROXIMITY AND VELOCITY PANELS */}
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-zinc-950 border border-zinc-800 p-3 flex flex-col justify-between">
             <div className="flex items-center gap-1.5 text-[9px] text-zinc-500 font-bold mb-2 uppercase">
@@ -284,7 +273,6 @@ export default function AsteroidDetails({
           </div>
         </div>
 
-        {/* COMPACT PROPORTIONAL SIZE COMPARISON */}
         <div className="bg-zinc-950 border border-zinc-800 p-3.5">
           <div className="flex items-center gap-2 text-[9px] text-zinc-500 font-bold mb-3 uppercase">
             <Ruler className="w-3.5 h-3.5 text-zinc-400" />
@@ -321,7 +309,6 @@ export default function AsteroidDetails({
           </div>
         </div>
 
-        {/* PREDICTED ROUTE PROJECTOR */}
         <div className="bg-zinc-950 border border-zinc-800 p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-zinc-400 font-bold uppercase">Trajectory Projection</span>
@@ -340,7 +327,6 @@ export default function AsteroidDetails({
             {showPredictedRoute ? "Disable Trajectory Projection" : "Project Future Trajectory"}
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -47,15 +47,12 @@ export default function ControlPanel({
         return false;
       }
       const avgSize = (ast.diameterMinMeters + ast.diameterMaxMeters) / 2;
-      if (avgSize < filterSizeMin) {
-        return false;
-      }
-      return true;
+      return avgSize >= filterSizeMin;
     });
   }, [asteroids, searchQuery, filterHazardousOnly, filterSizeMin]);
 
-  // Date Leap Shortcuts
   const setToday = () => onTargetDateChange(new Date().toISOString().split("T")[0]);
+  
   const addDays = (days: number) => {
     const d = new Date(targetDate || new Date());
     d.setDate(d.getDate() + days);
@@ -64,7 +61,6 @@ export default function ControlPanel({
 
   return (
     <div id="control-panel" className="flex flex-col h-full bg-black border border-zinc-800 rounded-none overflow-y-auto shadow-none font-mono text-xs scrollbar-thin">
-      {/* 1. EXPANDABLE OBSERVATION SETTINGS & FILTERS DROPDOWN */}
       <div className="border-b border-zinc-800 bg-zinc-950/40">
         <button
           id="toggle-settings-btn"
@@ -82,7 +78,6 @@ export default function ControlPanel({
 
         {settingsExpanded && (
           <div className="border-t border-zinc-900 bg-black/90 p-4 space-y-4">
-            {/* DATE SELECTOR + QUICK LEAPS */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[9px] text-zinc-400 flex items-center gap-1.5 font-bold uppercase">
@@ -109,7 +104,6 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* Quick Jump Buttons */}
               <div className="flex gap-1 pt-1">
                 <button onClick={setToday} className="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white">
                   Today
@@ -123,7 +117,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* PRESET FILTER BUTTONS */}
             <div className="space-y-1.5 border-t border-zinc-900 pt-3">
               <span className="text-[9px] text-zinc-400 font-bold uppercase flex items-center gap-1">
                 <Filter className="w-3 h-3 text-cyan-400" /> Filter Presets
@@ -150,7 +143,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* SIMULATION SPEED */}
             <div className="space-y-1.5 border-t border-zinc-900 pt-3">
               <div className="flex items-center justify-between text-[9px] text-zinc-400">
                 <span className="font-bold uppercase">Time Warp Speed</span>
@@ -179,7 +171,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* SEARCH & DETAILED FILTERS */}
             <div className="space-y-3 pt-2 border-t border-zinc-900">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2 w-3 h-3 text-zinc-600" />
@@ -230,7 +221,6 @@ export default function ControlPanel({
         )}
       </div>
 
-      {/* 2. PINNED CELESTIAL TARGET: THE MOON */}
       <div className="border-b border-zinc-800 bg-zinc-950 p-2.5">
         <div
           id="moon-target-card"
@@ -262,7 +252,6 @@ export default function ControlPanel({
         </div>
       </div>
 
-      {/* 3. ASTEROID LIST FEED */}
       <div className="flex-1 min-h-[140px] overflow-y-auto divide-y divide-zinc-900 scrollbar-thin">
         {filteredAsteroids.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center gap-2">

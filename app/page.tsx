@@ -134,11 +134,11 @@ export default function Home() {
       <header className="flex-none relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 border-b border-zinc-800 transition-colors bg-zinc-950">
         <div className="flex items-center gap-2.5">
           <div className="flex-shrink-0 flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 border border-cyan-500/40 bg-zinc-950 text-cyan-400 rounded-none shadow-[0_0_12px_rgba(34,211,238,0.2)]">
-            <Globe className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-cyan-400 animate-[spin_16s_linear_infinite]" />
+            <Rocket className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-cyan-400 animate-[spin_16s_linear_infinite]" />
           </div>
           <div className="min-w-0">
             <h1 className="text-[11px] sm:text-xs font-black tracking-widest leading-none text-white truncate">
-              LIVE ASTEROID 3D SIM
+              Live Asteroid 3-Dimensional Simulator
             </h1>
             <p className="text-[8px] sm:text-[9px] text-zinc-500 mt-0.5 uppercase tracking-wider flex items-center gap-1 truncate">
               <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 flex-shrink-0" />
